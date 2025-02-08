@@ -1,8 +1,7 @@
-from fastapi import FastAPI, HTTPException, Depends, Query, Request
+from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Text, DateTime, func, Boolean
-from sqlalchemy.orm import sessionmaker, relationship, mapped_column, Mapped, Session, DeclarativeBase
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import create_engine, Integer, String, func, Boolean
+from sqlalchemy.orm import sessionmaker, mapped_column, Mapped, Session, DeclarativeBase
 import uvicorn
 import sys
 import os
@@ -86,7 +85,7 @@ async def get_task(labeler_name: str, db: Session = Depends(get_db)):
     current_time_epoch = int(time.time())
     db_task = db.query(LabelTask).filter(LabelTask.is_labeled == False).filter((current_time_epoch - 60 * 60 * 24) > LabelTask.sent_label_request_at_epoch).first()
     if not db_task:
-        return { 'finished': True }
+        return {'finished': True}
 
     db_task.last_labeler = labeler_name
     db_task.sent_label_request_at_epoch = current_time_epoch
@@ -96,14 +95,14 @@ async def get_task(labeler_name: str, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_task)
 
-    return { 'task': db_task, 'sia_url': sia_url }
+    return {'task': db_task, 'sia_url': sia_url}
 
 
 @app.post('/api/set_labeled')
 async def set_labeled(tasks: list[LabeledTask], db: Session = Depends(get_db)):
     if not tasks:
-        raise HTTPException(status_code=400, detail="No tasks provided")
-    
+        raise HTTPException(status_code=400, detail='No tasks provided')
+
     created_labeled_tasks = []
 
     for task in tasks:
@@ -117,30 +116,36 @@ async def set_labeled(tasks: list[LabeledTask], db: Session = Depends(get_db)):
         db.commit()
 
         created_labeled_tasks.append(task.model_dump())
-    
+
     return created_labeled_tasks
 
 
 @app.post('/api/add_tasks')
 async def add_tasks(tasks: list[LabelTaskCreate], db: Session = Depends(get_db)):
     if not tasks:
-        raise HTTPException(status_code=400, detail="No tasks provided")
-    
+        raise HTTPException(status_code=400, detail='No tasks provided')
+
     current_time = int(time.time())
     created_tasks = []
-    
+
     for task in tasks:
         # TODO: check if fmc_data has correct data fields for later
         if not task.fmc_id or not task.fmc_data or not task.measurement_checksum:
-            raise HTTPException(status_code=400, detail=f"Invalid Task {task}")
+            raise HTTPException(status_code=400, detail=f'Invalid Task {task}')
 
         db_task = db.query(LabelTask).filter(LabelTask.measurement_checksum == task.measurement_checksum).first()
         if db_task:
             print(f'Skipping Task {task}, already in db.')
             continue
 
-        db_task = LabelTask(fmc_id=task.fmc_id, fmc_data=task.fmc_data, measurement_checksum=task.measurement_checksum, sia_meas_id_path=task.sia_meas_id_path, created_at_epoch=current_time)
-        db.add(db_task) 
+        db_task = LabelTask(
+            fmc_id=task.fmc_id,
+            fmc_data=task.fmc_data,
+            measurement_checksum=task.measurement_checksum,
+            sia_meas_id_path=task.sia_meas_id_path,
+            created_at_epoch=current_time
+        )
+        db.add(db_task)
         created_tasks.append(task.model_dump())
 
     db.commit()
@@ -149,7 +154,7 @@ async def add_tasks(tasks: list[LabelTaskCreate], db: Session = Depends(get_db))
 
 @app.get('/api/backup_db')
 async def backup_db():
-    current_time = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+    current_time = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
     if PROD:
         backup_path = f'/db/prod/backup/label_work_{current_time}.db'
     else:
@@ -160,7 +165,7 @@ async def backup_db():
 
     with backup_con:
         source_con.backup(backup_con)
-    
+
     backup_con.close()
     source_con.close()
 
@@ -214,5 +219,5 @@ async def get_leaderboard_html():
 Base.metadata.create_all(engine)
 
 # TODO: probably not needed
-if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=7100, reload=True)
+if __name__ == '__main__':
+    uvicorn.run('main:app', host='0.0.0.0', port=7100, reload=True)

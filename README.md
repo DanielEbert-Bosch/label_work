@@ -1,8 +1,9 @@
 #
 
-- fastapi, for both api and static
-- store in sqlite? sqlalchemy
+### TODO
 
-- add history for metrics
-
-- !!! add labling instructions
+- write request code to insert measurements
+- write request code to mark measurement as complete
+- deploy and serve statically
+    - replace urls
+    - use fetch url from .env maybe?

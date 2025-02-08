@@ -1,5 +1,4 @@
 import json
-from typing import Any
 
 import requests
 import os
@@ -41,11 +40,11 @@ def add_tasks():
     r = requests.get(f'{REST_API_URL}/api/metrics', headers=REST_API_HEADERS)
     assert r.status_code == 200, r.text
     assert r.json() == {
-        "total_labelable": len(tasks),
-        "labeled": 0,
-        "not_labeled": len(tasks),
-        "opened": 0,
-        "opened_pending": 0
+        'total_labelable': len(tasks),
+        'labeled': 0,
+        'not_labeled': len(tasks),
+        'opened': 0,
+        'opened_pending': 0
     }, r.text
 
 
@@ -57,11 +56,11 @@ def get_task():
     r = requests.get(f'{REST_API_URL}/api/metrics', headers=REST_API_HEADERS)
     assert r.status_code == 200, r.text
     assert r.json() == {
-        "total_labelable": len(tasks),
-        "labeled": 0,
-        "not_labeled": len(tasks),
-        "opened": 1,
-        "opened_pending": 1
+        'total_labelable': len(tasks),
+        'labeled': 0,
+        'not_labeled': len(tasks),
+        'opened': 1,
+        'opened_pending': 1
     }, r.text
 
 
@@ -69,8 +68,8 @@ def get_task():
 def set_labeled():
     labeled_tasks = [
         {
-            "measurement_checksum": tasks[3]['measurement_checksum'],
-            "label_bolf_path": tasks[3]['sia_meas_id_path']
+            'measurement_checksum': tasks[3]['measurement_checksum'],
+            'label_bolf_path': tasks[3]['sia_meas_id_path']
         }
     ]
 
@@ -81,11 +80,11 @@ def set_labeled():
     r = requests.get(f'{REST_API_URL}/api/metrics', headers=REST_API_HEADERS)
     assert r.status_code == 200, r.text
     assert r.json() == {
-        "total_labelable": len(tasks),
-        "labeled": 1,
-        "not_labeled": len(tasks) - 1,
-        "opened": 1,
-        "opened_pending": 0
+        'total_labelable': len(tasks),
+        'labeled': 1,
+        'not_labeled': len(tasks) - 1,
+        'opened': 1,
+        'opened_pending': 0
     }, r.text
 
 
@@ -94,7 +93,7 @@ def get_leaderboard():
     r = requests.get(f'{REST_API_URL}/api/leaderboard', headers=REST_API_HEADERS)
     assert r.status_code == 200, r.text
     assert r.json() == {
-        "user": 1
+        'user': 1
     }, r.text
 
 
