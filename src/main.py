@@ -1,0 +1,190 @@
+from fastapi import FastAPI, HTTPException, Depends, Query, Request
+from pydantic import BaseModel
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Text, DateTime, func, Boolean
+from sqlalchemy.orm import sessionmaker, relationship, mapped_column, Mapped, Session, DeclarativeBase
+from sqlalchemy.exc import SQLAlchemyError
+import uvicorn
+import sys
+import os
+from dotenv import load_dotenv
+import time
+import sqlite3
+import datetime
+from fastapi.responses import FileResponse
+
+sys.path.append(os.path.dirname(__file__))
+
+load_dotenv()
+
+app = FastAPI()
+
+PROD = os.getenv('PROD', '0') == '1'
+
+# Database setup
+DATABASE_FILEPATH = '/db/prod/label_work.db' if PROD else '/db/test/label_work.db'
+engine = create_engine(f'sqlite://{DATABASE_FILEPATH}')
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+class Base(DeclarativeBase):
+    pass
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+# TODO: probably need measurement link
+class LabelTask(Base):
+    __tablename__ = 'label_tasks'
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    fmc_id: Mapped[str] = mapped_column(String, index=True)
+    measurement_checksum: Mapped[str] = mapped_column(String, unique=True, index=True)
+    fmc_data: Mapped[str] = mapped_column(String)
+    sia_meas_id_path: Mapped[str] = mapped_column(String)
+
+    # 0 means not sent out yet
+    sent_label_request_at_epoch: Mapped[int] = mapped_column(Integer, default=0)
+    last_labeler: Mapped[str | None] = mapped_column(String, nullable=True, default=None)
+
+    is_labeled: Mapped[bool] = mapped_column(Boolean, default=False)
+    label_bolf_path: Mapped[str | None] = mapped_column(String, nullable=True, default=None)
+
+    created_at_epoch: Mapped[int] = mapped_column(Integer)
+
+
+class LabelTaskCreate(BaseModel):
+    fmc_id: str
+    fmc_data: str
+    measurement_checksum: str
+    sia_meas_id_path: str
+
+
+class LabeledTask(BaseModel):
+    measurement_checksum: str
+    label_bolf_path: str
+
+
+@app.get('/api/get_task')
+async def get_task(labeler_name: str, db: Session = Depends(get_db)):
+    current_time_epoch = int(time.time())
+    db_task = db.query(LabelTask).filter(LabelTask.is_labeled == False).filter((current_time_epoch - 60 * 60 * 24) > LabelTask.sent_label_request_at_epoch).first()
+    if not db_task:
+        return { 'finished': True }
+
+    db_task.last_labeler = labeler_name
+    db_task.sent_label_request_at_epoch = current_time_epoch
+
+    sia_url = f'https://qa.sia.bosch-automotive-mlops.com/?time=99999&measId=%2F{db_task.sia_meas_id_path}'
+
+    db.commit()
+    db.refresh(db_task)
+
+    return { 'task': db_task, 'sia_url': sia_url }
+
+
+@app.post('/api/set_labeled')
+async def set_labeled(tasks: list[LabeledTask], db: Session = Depends(get_db)):
+    if not tasks:
+        raise HTTPException(status_code=400, detail="No tasks provided")
+
+    for task in tasks:
+        db_task = db.query(LabelTask).filter(LabelTask.measurement_checksum == task.measurement_checksum).first()
+        if not db_task:
+            print(f'Unknown task {task}')
+            continue
+
+        db_task.label_bolf_path = task.label_bolf_path
+        db_task.is_labeled = True
+        db.commit()
+
+
+@app.post('/api/add_tasks')
+async def add_tasks(tasks: list[LabelTaskCreate], db: Session = Depends(get_db)):
+    if not tasks:
+        raise HTTPException(status_code=400, detail="No tasks provided")
+    
+    current_time = int(time.time())
+    created_tasks = []
+    
+    for task in tasks:
+        # TODO: check if fmc_data has correct data fields for later
+        if not task.fmc_id or not task.fmc_data or not task.measurement_checksum:
+            raise HTTPException(status_code=400, detail=f"Invalid Task {task}")
+
+        db_task = db.query(LabelTask).filter(LabelTask.measurement_checksum == task.measurement_checksum).first()
+        if db_task:
+            print(f'Skipping Task {task}, already in db.')
+            continue
+
+        db_task = LabelTask(fmc_id=task.fmc_id, fmc_data=task.fmc_data, measurement_checksum=task.measurement_checksum, sia_meas_id_path=task.sia_meas_id_path, created_at_epoch=current_time)
+        db.add(db_task) 
+        created_tasks.append(task.model_dump())
+
+    db.commit()
+    return {'created_tasks': created_tasks}
+
+
+@app.get('/api/backup_db')
+async def backup_db():
+    current_time = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+    if PROD:
+        backup_path = f'/db/prod/backup/label_work_{current_time}.db'
+    else:
+        backup_path = f'/db/test/backup/label_work_{current_time}.db'
+
+    source_con = sqlite3.connect(DATABASE_FILEPATH)
+    backup_con = sqlite3.connect(backup_path)
+
+    with backup_con:
+        source_con.backup(backup_con)
+    
+    backup_con.close()
+    source_con.close()
+
+
+@app.get('/api/metrics')
+async def get_metrics(db: Session = Depends(get_db)):
+    total_count = db.query(LabelTask).count()
+    is_labeled_count = db.query(LabelTask).filter(LabelTask.is_labeled == True).count()
+    not_labeled_count = db.query(LabelTask).filter(LabelTask.is_labeled == False).count()
+    sent_label_request_count = db.query(LabelTask).filter(LabelTask.sent_label_request_at_epoch != 0).count()
+
+    metrics = {
+        'total_tasks_count': total_count,
+        'is_labeled_count': is_labeled_count,
+        'not_labeled_count': not_labeled_count,
+        'sent_label_request_count': sent_label_request_count,
+        'sent_but_not_labeled_count': sent_label_request_count - is_labeled_count
+    }
+    return metrics
+
+
+@app.get('/api/leaderboard')
+async def leaderboard(db: Session = Depends(get_db)):
+    leaderboard_data = db.query(LabelTask.last_labeler, func.count()).filter(LabelTask.last_labeler != None).group_by(LabelTask.last_labeler).all()
+    leaderboard = {}
+    for labeler, count in leaderboard_data:
+        leaderboard[labeler] = count
+    return leaderboard
+
+
+@app.get('/')
+async def get_index_html():
+    return FileResponse('/static/index.html')
+
+@app.get('/leaderboard')
+async def get_leaderboard_html():
+    # TODO: add html text saying this not live, updated every day or so
+    return FileResponse('/static/leaderboard.html')
+
+# TODO: when serving static web content, make cache time 0?
+
+Base.metadata.create_all(engine)
+
+# TODO: probably not needed
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=7100, reload=True)

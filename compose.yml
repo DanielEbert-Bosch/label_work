@@ -1,0 +1,15 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: label_work:latest
+    container_name: label_work 
+    entrypoint: "python src/main.py"
+    ports:
+      - "7100:7100"
+    volumes:
+      - "./.env:/.env"
+      - "./src:/src"
+      - "./db:/db"
+      - "./static:/static"
