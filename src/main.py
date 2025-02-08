@@ -56,6 +56,19 @@ class LabelTask(Base):
     created_at_epoch: Mapped[int] = mapped_column(Integer)
 
 
+class Metric(Base):
+    __tablename__ = 'metrics_history'
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    created_at_epoch: Mapped[int] = mapped_column(Integer)
+
+    total_labelable: Mapped[int] = mapped_column(Integer)
+    labeled: Mapped[int] = mapped_column(Integer)
+    not_labeled: Mapped[int] = mapped_column(Integer)
+    opened: Mapped[int] = mapped_column(Integer)
+    opened_pending: Mapped[int] = mapped_column(Integer)
+
+
 class LabelTaskCreate(BaseModel):
     fmc_id: str
     fmc_data: str
@@ -78,7 +91,7 @@ async def get_task(labeler_name: str, db: Session = Depends(get_db)):
     db_task.last_labeler = labeler_name
     db_task.sent_label_request_at_epoch = current_time_epoch
 
-    sia_url = f'https://qa.sia.bosch-automotive-mlops.com/?time=99999&measId=%2F{db_task.sia_meas_id_path}'
+    sia_url = f'https://qa.sia.bosch-automotive-mlops.com/?time=99999&measId={db_task.sia_meas_id_path}'
 
     db.commit()
     db.refresh(db_task)
@@ -90,6 +103,8 @@ async def get_task(labeler_name: str, db: Session = Depends(get_db)):
 async def set_labeled(tasks: list[LabeledTask], db: Session = Depends(get_db)):
     if not tasks:
         raise HTTPException(status_code=400, detail="No tasks provided")
+    
+    created_labeled_tasks = []
 
     for task in tasks:
         db_task = db.query(LabelTask).filter(LabelTask.measurement_checksum == task.measurement_checksum).first()
@@ -100,6 +115,10 @@ async def set_labeled(tasks: list[LabeledTask], db: Session = Depends(get_db)):
         db_task.label_bolf_path = task.label_bolf_path
         db_task.is_labeled = True
         db.commit()
+
+        created_labeled_tasks.append(task.model_dump())
+    
+    return created_labeled_tasks
 
 
 @app.post('/api/add_tasks')
@@ -149,18 +168,28 @@ async def backup_db():
 @app.get('/api/metrics')
 async def get_metrics(db: Session = Depends(get_db)):
     total_count = db.query(LabelTask).count()
-    is_labeled_count = db.query(LabelTask).filter(LabelTask.is_labeled == True).count()
-    not_labeled_count = db.query(LabelTask).filter(LabelTask.is_labeled == False).count()
-    sent_label_request_count = db.query(LabelTask).filter(LabelTask.sent_label_request_at_epoch != 0).count()
+    labeled = db.query(LabelTask).filter(LabelTask.is_labeled == True).count()
+    not_labeled = db.query(LabelTask).filter(LabelTask.is_labeled == False).count()
+    opened = db.query(LabelTask).filter(LabelTask.sent_label_request_at_epoch != 0).count()
 
     metrics = {
-        'total_tasks_count': total_count,
-        'is_labeled_count': is_labeled_count,
-        'not_labeled_count': not_labeled_count,
-        'sent_label_request_count': sent_label_request_count,
-        'sent_but_not_labeled_count': sent_label_request_count - is_labeled_count
+        'total_labelable': total_count,
+        'labeled': labeled,
+        'not_labeled': not_labeled,
+        'opened': opened,
+        'opened_pending': opened - labeled
     }
+
+    metric = Metric(**metrics, created_at_epoch=int(time.time()))
+    db.add(metric)
+    db.commit()
+
     return metrics
+
+
+@app.get('/api/metrics_history')
+async def get_metrics_history(db: Session = Depends(get_db)):
+    return db.query(Metric).order_by(Metric.created_at_epoch).all()
 
 
 @app.get('/api/leaderboard')
@@ -181,7 +210,6 @@ async def get_leaderboard_html():
     # TODO: add html text saying this not live, updated every day or so
     return FileResponse('/static/leaderboard.html')
 
-# TODO: when serving static web content, make cache time 0?
 
 Base.metadata.create_all(engine)
 

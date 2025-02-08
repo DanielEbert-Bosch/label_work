@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Labeling Leaderboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+
+    <style>
+      body {
+        font-family: sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+      }
+
+      .container {
+        display: flex;
+        gap: 76px;
+        align-items: flex-start;
+      }
+
+      .board {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        width: 100%;
+      }
+
+      .board-title {
+        background-color: #007bff;
+        color: white;
+        text-align: center;
+        padding: 20px;
+        font-size: 1.5em;
+        margin-bottom: 20px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        padding: 12px 15px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+      }
+
+      th {
+        background-color: #f2f2f2;
+        font-weight: bold;
+      }
+
+      tbody tr:last-child td {
+        border-bottom: none;
+      }
+
+      tbody tr:nth-child(even) {
+        background-color: #f9f9f9;
+      }
+
+      .rank-cell {
+        text-align: center;
+        width: 50px;
+      }
+
+      .score-cell {
+        text-align: right;
+        width: 80px;
+      }
+
+      .metric-name-cell {
+        font-weight: bold; /* Make metric names bold */
+      }
+
+      .metric-value-cell {
+        text-align: right; /* Right align metric values */
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="board">
+        <div class="board-title">Labeling Leaderboard</div>
+        <table id="leaderboard-table"></table>
+      </div>
+
+      <div class="board">
+        <div class="board-title">Metrics</div>
+        <table id="metrics-table"></table>
+      </div>
+
+      <div class="board">
+        <div id="vis"></div>
+      </div>
+    </div>
+    <script>
+      function setTable(tableId, dataDict, columnHeaders) {
+        const table = document.getElementById(tableId);
+        if (!table) {
+          console.error(`Table with id "${tableId}" not found.`);
+          return;
+        }
+
+        // Clear existing table content (optional, but good practice)
+        table.innerHTML = "";
+
+        // Add header row
+        const thead = table.createTHead();
+        const headerRow = thead.insertRow();
+        for (const header of columnHeaders) {
+          const th = document.createElement("th");
+          th.textContent = header;
+          headerRow.appendChild(th);
+        }
+
+        // Add data rows
+        const tbody = table.createTBody();
+        for (const key in dataDict) {
+          if (dataDict.hasOwnProperty(key)) {
+            // Important: Check for own properties
+            const row = tbody.insertRow();
+            const cell1 = row.insertCell();
+            const cell2 = row.insertCell();
+            cell1.textContent = key;
+            cell2.textContent = dataDict[key];
+          }
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        // TODO: use server url
+        fetch(new URL("http://localhost:7100/api/leaderboard"))
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then((data) => {
+            console.log("Fetched data:", data);
+            setTable("leaderboard-table", data, ["Name", "Score"]);
+          });
+
+        fetch(new URL("http://localhost:7100/api/metrics"))
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then((data) => {
+            console.log("Fetched data:", data);
+            setTable("metrics-table", data, ["Metric", "Value"]);
+          })
+          .then(() => {
+            fetch(new URL("http://localhost:7100/api/metrics_history"))
+              .then((response) => {
+                if (!response.ok) {
+                  throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+              })
+              .then((data) => {
+                console.log("Fetched data:", data);
+
+                const unlabeledHistoryPlotData = [];
+                const labeledHistoryPlotData = [];
+
+                data.forEach((e) => {
+                  labeledHistoryPlotData.push({
+                    x: e.created_at_epoch,
+                    y: e.labeled,
+                    Metric: "Labeled",
+                  });
+
+                  unlabeledHistoryPlotData.push({
+                    x: e.created_at_epoch,
+                    y: e.not_labeled,
+                    Metric: "Unlabeled",
+                  });
+                });
+
+                const spec = {
+                  $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+                  width: 400,
+                  height: 400,
+
+                  layer: [
+                    {
+                      data: {
+                        values: unlabeledHistoryPlotData,
+                      },
+                      mark: "line",
+                      encoding: {
+                        x: {
+                          field: "x",
+                          type: "temporal",
+                          title: "Date",
+                          axis: {
+                            format: "%m-%d %H:%m",
+                            labelAngle: -45,
+                          },
+                        },
+                        y: {
+                          field: "y",
+                          type: "quantitative",
+                          title: "Count",
+                        },
+                        color: {
+                          field: "Metric",
+                          type: "nominal",
+                          scale: {
+                            domain: ["Labeled", "Unlabeled"],
+                            range: ["green", "orange"],
+                          },
+                        },
+                      },
+                    },
+                    {
+                      data: {
+                        values: labeledHistoryPlotData,
+                      },
+                      mark: "line",
+                      encoding: {
+                        x: {
+                          field: "x",
+                          type: "temporal",
+                        },
+                        y: {
+                          field: "y",
+                          type: "quantitative",
+                          title: "Count",
+                        },
+                        color: {
+                          field: "Metric",
+                          type: "nominal",
+                          scale: {
+                            domain: ["Labeled", "Unlabeled"],
+                            range: ["green", "orange"],
+                          },
+                        },
+                      },
+                    },
+                  ],
+                };
+
+                vegaEmbed("#vis", spec)
+                  .then((result) => console.log(result))
+                  .catch(console.warn);
+              });
+          });
+      });
+    </script>
+  </body>
+</html>
