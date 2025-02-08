@@ -3,126 +3,172 @@
   <head>
     <title>Bosch Label Taskforce</title>
     <style>
-     body {
-            font-family: sans-serif;
-            background-color: #f4f4f4;
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
+      body {
+        font-family: sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+      }
 
+      .container {
+        background-color: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        width: 80%;
+      }
+
+      h1 {
+        color: #333;
+        margin-bottom: 50px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 8px;
+        color: #555;
+        font-weight: bold;
+        text-align: left;
+      }
+
+      input[type="text"] {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 40px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box; /* To include padding and border in element's total width and height */
+        font-size: 16px;
+      }
+
+      .nextmeasurement-button {
+        background-color: #007bff; /* Modern blue color */
+        color: white;
+        padding: 24px 50px;
+        width: 100%;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 24px;
+        transition: background-color 0.3s ease; /* Smooth hover effect */
+      }
+
+      .nextmeasurement-button:hover {
+        background-color: #0056b3; /* Darker blue on hover */
+      }
+
+      #xp-bar-container {
+        background-color: #eee;
+        border-radius: 8px;
+        margin-top: 40px;
+        margin-bottom: 40px;
+        padding: 10px;
+      }
+
+      #xp-bar {
+        background-color: #ddd;
+        border-radius: 6px;
+        height: 20px;
+        overflow: hidden;
+        position: relative;
+      }
+
+      #xp-progress {
+        background-color: #28a745;
+        height: 100%;
+        border-radius: 6px;
+        transition: width 0.5s ease;
+      }
+
+      #xp-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: rgb(31, 31, 31);
+        font-size: 14px;
+        font-weight: bold;
+      }
+
+      #labeling-instructions {
+        text-align: left;
+      }
+
+      @media (max-width: 600px) {
         .container {
-            background-color: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            width: 80%;
+          width: 90%;
+          padding: 20px;
         }
-
-        h1 {
-            color: #333;
-            margin-bottom: 50px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 8px;
-            color: #555;
-            font-weight: bold;
-            text-align: left;
-        }
-
-        input[type="text"] {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 40px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box; /* To include padding and border in element's total width and height */
-            font-size: 16px;
-        }
-
-        .nextmeasurement-button {
-            background-color: #007bff; /* Modern blue color */
-            color: white;
-            padding: 24px 50px;
-            width: 100%;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 24px;
-            transition: background-color 0.3s ease; /* Smooth hover effect */
-        }
-
-        .nextmeasurement-button:hover {
-            background-color: #0056b3; /* Darker blue on hover */
-        }
-
-        #xp-bar-container {
-            background-color: #eee;
-            border-radius: 8px;
-            margin-top: 40px;
-            padding: 10px;
-        }
-
-        #xp-bar {
-            background-color: #ddd;
-            border-radius: 6px;
-            height: 20px;
-            overflow: hidden;
-            position: relative;
-        }
-
-        #xp-progress {
-            background-color: #28a745;
-            height: 100%;
-            border-radius: 6px;
-            transition: width 0.5s ease;
-        }
-
-        #xp-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: rgb(63, 63, 63);
-            font-size: 14px;
-            font-weight: bold;
-        }
-
-        @media (max-width: 600px) {
-            .container {
-                width: 90%;
-                padding: 20px;
-            }
-        } 
+      }
     </style>
   </head>
   <body>
     <div class="container">
-        <h1>Bosch Label Taskforce</h1>
+      <h1>Bosch Label Taskforce</h1>
 
-        <label for="user">User ID (example: abc1kor)</label>
-        <input type="text" id="user" name="user" placeholder="Enter User ID"/>
+      <label for="user">User ID (example: abc1kor)</label>
+      <input type="text" id="user" name="user" placeholder="Enter User ID" />
 
-        <button class="nextmeasurement-button" onclick="openMeasurement()">
-          Open Measurement
-        </button>
+      <button class="nextmeasurement-button" onclick="openMeasurement()">
+        Open Measurement
+      </button>
 
-        <div id="xp-bar-container">
-          <div id="xp-bar">
-            <div id="xp-progress">
-                <div id="xp-text">60%</div>
-            </div>
+      <div id="xp-bar-container">
+        <div id="xp-bar">
+          <div id="xp-progress">
+            <div id="xp-text">60%</div>
           </div>
         </div>
+      </div>
 
-        <div>
-            Labeling Instructions
-        </div>
+      <h2>Labeling Guide</h2>
+      <div id="labeling-instructions">
+        <ol>
+          <li>Open Measurement</li>
+          <li>
+            [First time only] Visualize: In the opened window, open the side
+            panel and select "Object PCD *" and "Road PCD *" and "Contour *". If
+            multiple * are available, select the most recent timestamp.
+          </li>
+          <li>
+            Select the opened window and press "b" TODOebd7rng: this will be
+            automated soon
+          </li>
+          <li>
+            Click multiple times to create a polygon around the obstacle. The
+            polygon must have at minimum 4 points. The points must be outside
+            the obstacle, but as close as possible to the obstacle.
+          </li>
+        </ol>
+
+        <p>Example: TODOebd7rng provides video</p>
+        <p>
+          Teamwork: Work as a team! Share tips, tricks, and insights on
+          effective and accurate labeling. Discuss challenging cases and support
+          each other to maintain consistent quality. Knowledge sharing is
+          crucial.
+        </p>
+        <p>
+          If you have any questions, please reach out to Daniel (ebd7rng) on
+          Teams or in the Labelers chat.
+        </p>
+        <video
+          width="640"
+          height="360"
+          controls
+          preload="metadata"
+        >
+          <source
+            src="ahttps://www.w3schools.com/html/mov_bbb.mp4"
+            type="video/mp4"
+          />
+          Your browser does not support the video tag.
+        </video>
+      </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
@@ -152,17 +198,17 @@
           .then((data) => {
             console.log("Fetched data:", data);
 
-            if ('finished' in data) {
-                confetti({
-                    particleCount: 200,
-                    spread: 70,
-                    origin: { y: 0.6 },
-                });
-                alert('Wow! All measurements are labeled ^_^');
-                return;
+            if ("finished" in data) {
+              confetti({
+                particleCount: 200,
+                spread: 70,
+                origin: { y: 0.6 },
+              });
+              alert("Wow! All measurements are labeled ^_^");
+              return;
             }
 
-            const sia_url = data['sia_url'];
+            const sia_url = data["sia_url"];
 
             const screenWidth = window.screen.availWidth;
             const screenHeight = window.screen.availHeight;
@@ -209,7 +255,7 @@
 
         const percentage = (currentXP / xpToNextLevel) * 100;
         progressBar.style.width = percentage + "%";
-        console.log(percentage)
+        console.log(percentage);
 
         xpText.textContent = `Level: ${level}  (${Math.floor(
           currentXP
@@ -233,7 +279,7 @@
 
         const prevUser = localStorage.getItem("labelingUser", user);
         if (prevUser) {
-            document.getElementById("user").value = prevUser;
+          document.getElementById("user").value = prevUser;
         }
       });
     </script>
