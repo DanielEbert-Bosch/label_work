@@ -125,6 +125,10 @@
         </div>
       </div>
 
+      <div>
+        <img id="userMap" alt="Map" />
+      </div>
+
       <h2>Labeling Guide</h2>
       <div id="labeling-instructions">
         <ol>
@@ -135,23 +139,20 @@
             multiple * are available, select the most recent timestamp.
           </li>
           <li>
-            Select the opened window and press "b" TODOebd7rng: this will be
-            automated soon
-          </li>
-          <li>
             Click multiple times to create a polygon around the obstacle. The
             polygon must have at minimum 4 points. The points must be outside
             the obstacle, but as close as possible to the obstacle.
           </li>
           <li>
-            [Optional] To restart, e.g. when something goes wrong, reload the page and go to step 3.
+            [Optional] To restart, e.g. when something goes wrong, reload the
+            page and go to step 3.
           </li>
           <li>
-            Save the label: Press "s" to save. Make sure the Save Icon in the top right plot corner turns green.
+            Save the label: Press "s" to save. Make sure the Save Icon in the
+            top right plot corner turns green.
           </li>
         </ol>
 
-        <p>Example: TODOebd7rng provides video</p>
         <p>
           Teamwork: Work as a team! Share tips, tricks, and insights on
           effective and accurate labeling. Discuss challenging cases and support
@@ -160,14 +161,10 @@
         </p>
         <p>
           If you have any questions, please reach out to Daniel (ebd7rng) on
-          Teams or in the Labelers chat.
+          Teams or in the Labeling Taskforce team chat.
         </p>
-        <video
-          width="640"
-          height="360"
-          controls
-          preload="metadata"
-        >
+        <p>Example: TODOebd7rng provides video</p>
+        <video width="640" height="360" controls preload="metadata">
           <source
             src="ahttps://www.w3schools.com/html/mov_bbb.mp4"
             type="video/mp4"
@@ -181,6 +178,30 @@
     <script>
       let currentXP = 0;
       let previousLevel = -1;
+
+      function loadMap(user, level) {
+        const mapurl = new URL("http://localhost:7100/map");
+        mapurl.searchParams.append("labeler_name", user);
+        mapurl.searchParams.append("level", level);
+
+        fetch(mapurl)
+          .then((response) => response.blob())
+          .then((blob) => {
+            const tempImg = new Image();
+            tempImg.src = URL.createObjectURL(blob);
+
+            tempImg.onload = () => {
+              const imgUrl = URL.createObjectURL(blob);
+              const imgElement = document.getElementById("userMap");
+              imgElement.src = imgUrl;
+              imgElement.width = tempImg.width * 2;
+              imgElement.height = tempImg.height * 2;
+            };
+          })
+          .catch((error) => {
+            console.error("Error fetching or processing image:", error);
+          });
+      }
 
       function openMeasurement() {
         const user = document.getElementById("user").value;
@@ -240,8 +261,9 @@
 
       function setXPBar(currentXP) {
         let level = 1;
-        let xpToNextLevel = 250;
-        while (currentXP > xpToNextLevel) {
+        let xpToNextLevel = 100;
+        console.log(currentXP)
+        while (currentXP >= xpToNextLevel) {
           level += 1;
           currentXP -= xpToNextLevel;
           xpToNextLevel *= 1.15;
@@ -253,6 +275,9 @@
             spread: 70,
             origin: { y: 0.6 },
           });
+        }
+        if (previousLevel == 0 || previousLevel != level) {
+          loadMap(user, level);
         }
         previousLevel = level;
 
@@ -276,11 +301,9 @@
 
       document.addEventListener("DOMContentLoaded", function () {
         // doesn't work if someone changes browsers, but leaderboard is anyway on server
-        currentXP = localStorage.getItem("labelingXP")
-          ? localStorage.getItem("labelingXP")
+        currentXP = Number(localStorage.getItem("labelingXP"))
+          ? Number(localStorage.getItem("labelingXP"))
           : 0;
-        // TODO: default back to 0
-        currentXP = 249;
         setXPBar(currentXP);
 
         const prevUser = localStorage.getItem("labelingUser", user);

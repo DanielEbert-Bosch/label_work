@@ -10,6 +10,7 @@ import time
 import sqlite3
 import datetime
 from fastapi.responses import FileResponse
+from urllib.parse import quote
 
 sys.path.append(os.path.dirname(__file__))
 
@@ -83,14 +84,18 @@ class LabeledTask(BaseModel):
 @app.get('/api/get_task')
 async def get_task(labeler_name: str, db: Session = Depends(get_db)):
     current_time_epoch = int(time.time())
-    db_task = db.query(LabelTask).filter(LabelTask.is_labeled == False).filter((current_time_epoch - 60 * 60 * 24) > LabelTask.sent_label_request_at_epoch).first()
+    # TODO: i need to sync every min 4 days
+    db_task = db.query(LabelTask).filter(LabelTask.is_labeled == False).filter((current_time_epoch - 60 * 60 * 24 * 4) > LabelTask.sent_label_request_at_epoch).order_by(func.random()).first()
     if not db_task:
         return {'finished': True}
 
     db_task.last_labeler = labeler_name
     db_task.sent_label_request_at_epoch = current_time_epoch
 
-    sia_url = f'https://qa.sia.bosch-automotive-mlops.com/?time=99999&measId={db_task.sia_meas_id_path}'
+    encoded_name = quote(labeler_name)
+
+    # TODO: move to qa once fast label mode is done
+    sia_url = f'https://dev.sia.bosch-automotive-mlops.com/?time=99999&minimalLabelMode=true&minimalLabelModeUsername={encoded_name}&measId={db_task.sia_meas_id_path}'
 
     db.commit()
     db.refresh(db_task)
@@ -146,9 +151,9 @@ async def add_tasks(tasks: list[LabelTaskCreate], db: Session = Depends(get_db))
             created_at_epoch=current_time
         )
         db.add(db_task)
+        db.commit()
         created_tasks.append(task.model_dump())
 
-    db.commit()
     return {'created_tasks': created_tasks}
 
 
@@ -203,7 +208,10 @@ async def leaderboard(db: Session = Depends(get_db)):
     leaderboard = {}
     for labeler, count in leaderboard_data:
         leaderboard[labeler] = count
-    return leaderboard
+    
+    sorted_leaderboard_items = sorted(leaderboard.items(), key=lambda item: item[1], reverse=True)
+    top_3_items = sorted_leaderboard_items[:3]
+    return {labeler: count for labeler, count in top_3_items}
 
 
 @app.get('/')
@@ -214,6 +222,11 @@ async def get_index_html():
 async def get_leaderboard_html():
     # TODO: add html text saying this not live, updated every day or so
     return FileResponse('/static/leaderboard.html')
+
+@app.get('/map')
+async def get_map(labeler_name: str, level: int):
+    level_to_map_id = max(0, min(level // 4, 6))
+    return FileResponse(f'/static/img/stage{level_to_map_id}.png')
 
 
 Base.metadata.create_all(engine)
