@@ -11,6 +11,7 @@ import sqlite3
 import datetime
 from fastapi.responses import FileResponse
 from urllib.parse import quote
+from fastapi.staticfiles import StaticFiles
 
 sys.path.append(os.path.dirname(__file__))
 
@@ -228,6 +229,7 @@ async def get_map(labeler_name: str, level: int):
     level_to_map_id = max(0, min(level // 4, 6))
     return FileResponse(f'/static/img/stage{level_to_map_id}.png')
 
+app.mount('/examples', StaticFiles(directory='/static/img/examples/'), name='examples')
 
 Base.metadata.create_all(engine)
 

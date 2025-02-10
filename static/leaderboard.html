@@ -103,6 +103,8 @@
       </div>
     </div>
     <script>
+      const backend = window.location.hostname;
+
       function setTable(tableId, dataDict, columnHeaders) {
         const table = document.getElementById(tableId);
         if (!table) {
@@ -134,7 +136,7 @@
 
       document.addEventListener("DOMContentLoaded", function () {
         // TODO: use server url
-        fetch(new URL("http://localhost:7100/api/leaderboard"))
+        fetch(new URL(`http://${backend}:7100/api/leaderboard`))
           .then((response) => {
             if (!response.ok) {
               throw new Error(`HTTP error! status: ${response.status}`);
@@ -146,7 +148,7 @@
             setTable("leaderboard-table", data, ["Name", "Score"]);
           });
 
-        fetch(new URL("http://localhost:7100/api/metrics"))
+        fetch(new URL(`http://${backend}:7100/api/metrics`))
           .then((response) => {
             if (!response.ok) {
               throw new Error(`HTTP error! status: ${response.status}`);
@@ -158,7 +160,7 @@
             setTable("metrics-table", data, ["Metric", "Value"]);
           })
           .then(() => {
-            fetch(new URL("http://localhost:7100/api/metrics_history"))
+            fetch(new URL(`http://${backend}:7100/api/metrics_history`))
               .then((response) => {
                 if (!response.ok) {
                   throw new Error(`HTTP error! status: ${response.status}`);
