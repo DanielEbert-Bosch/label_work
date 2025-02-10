@@ -184,54 +184,59 @@
           If you have any questions, please reach out to Daniel (ebd7rng) on
           Teams or in the Labeling Taskforce team chat.
         </p>
-        <p>Example: TODOebd7rng provides video</p>
+        <p>Example Labeling of a Measurement.</p>
         <video width="640" height="360" controls preload="metadata">
           <source
-            src="ahttps://www.w3schools.com/html/mov_bbb.mp4"
+            src="http://localhost:7100/examples/labelExample.mp4"
             type="video/mp4"
           />
           Your browser does not support the video tag.
         </div>
         <h2>Example Labeled Measurements</h2>
         <div id="labeling-examples">
-            <br/>Box Example. Lidar points with a height of >15cm have a different color, in this example a black color. Therefore, if our obstacle is high, draw a polygon around the black points. Checkout the video to see what type of obstacle we are driving towards.
+            <br/>Box Example. Lidar points with a height of >15cm have a different color, in this example a black color. Therefore, if our obstacle is high, draw a polygon around the black points. Checkout the video to see what type of obstacle we are driving towards.<br/>
             <img src="http://localhost:7100/examples/box.png">
-            <br/>Points very close to the obstacle are not shown, therefore it is often useful to go back in time by dragging the slider:
+            <br/>Points very close to the obstacle are not shown, therefore it is often useful to go back in time by dragging the slider:<br/>
             <img src="http://localhost:7100/examples/timeSlider.png">
-            <br/>In scenes with an obstacle of height >15cm its often useful to turn off the road points. Road points have height <15cm. To toggle road points on and off:
+            <br/>In scenes with an obstacle of height >15cm its often useful to turn off the road points. Road points have height <15cm. To toggle road points on and off:<br/>
             <img src="http://localhost:7100/examples/showRoadPcd.png">
-            <br/>And for heigh obstacles, its easy to see and label the obstacle:
+            <br/>And for heigh obstacles, its easy to see and label the obstacle:<br/>
             <img src="http://localhost:7100/examples/box8.png">
-            The obstacle is where there is an accumulation of points, e.g.:
+            The obstacle is where there is an accumulation of points, e.g.:<br/>
             <img src="http://localhost:7100/examples/box2.png">
-            Very high obstacles block off any points, therefore for such obstacles there won't be any points behind the obstacle.
+            Very high obstacles block off any points, therefore for such obstacles there won't be any points behind the obstacle.<br/>
             <img src="http://localhost:7100/examples/box3.png">
+            <br/> Hover over the polygon to show the obstacle type and height. Using the video and obstacle shape, that the metadata is valid.<br/>
+            <br/>Example of valid metadata:<br/>
+            <img src="http://localhost:7100/examples/validMetadata.png">
+            <br/> Example of invalid Metadata:<br/>
+            <img src="http://localhost:7100/examples/invalidMetadata.png">
             <img src="http://localhost:7100/examples/box4.png">
             <img src="http://localhost:7100/examples/box5.png">
             <img src="http://localhost:7100/examples/box6.png">
             <img src="http://localhost:7100/examples/box7.png">
             <img src="http://localhost:7100/examples/box9.png">
             <img src="http://localhost:7100/examples/box10.png">
-            <br/> Curbstone example. For obstacles with a height of <15cm, we just have 1 color for all points. This makes it harder to see where the obstacle is located. However, there is an accumulation along the bounding box of the obstacle:
+            <br/> Curbstone example. For obstacles with a height of <15cm, we just have 1 color for all points. This makes it harder to see where the obstacle is located. However, there is an accumulation along the bounding box of the obstacle:<br/>
             <img src="http://localhost:7100/examples/curbstone1.png">
-            <br/> We can color the road points based on their height. This is often useful for low height obstacles. Guide:
+            <br/> We can color the road points based on their height. This is often useful for low height obstacles. Guide:<br/>
             <img src="http://localhost:7100/examples/colorRoadPoints.png">
-            <br/> This is the same curbstone from the image above, with color coding enabled. You can see that the curbstone points have a darker orange color, compared to the immediate surrounding points.
+            <br/> This is the same curbstone from the image above, with color coding enabled. You can see that the curbstone points have a darker orange color, compared to the immediate surrounding points.<br/>
             <img src="http://localhost:7100/examples/curbstone2.png">
-            <br/> Dummy Obstacle. Feel free to use more than 4 points to accurately capture the obstacle.
+            <br/> Dummy Obstacle. Feel free to use more than 4 points to accurately capture the obstacle.<br/>
             <img src="http://localhost:7100/examples/dummy1.png">
             <img src="http://localhost:7100/examples/dummy2.png">
-            <br/> Always label the one obstacle that we are driving towards. In rare cases, that obstacle can be some meters away.
+            <br/> Always label the one obstacle that we are driving towards. In rare cases, that obstacle can be some meters away.<br/>
             <img src="http://localhost:7100/examples/farAway.png">
-            <br/> In this scenario, its very hard to see the obstacle in the lidar camera on the left. In this case, rely on the lidar points on the right.
+            <br/> In this scenario, its very hard to see the obstacle in the lidar camera on the left. In this case, rely on the lidar points on the right.<br/>
             <img src="http://localhost:7100/examples/hardToSee.png">
             <img src="http://localhost:7100/examples/hardToSee2.png">
             <img src="http://localhost:7100/examples/highObstacle.png">
-            <br/> Speedbump example. These are the hardest to label. Difficult to see in the lidar points because there is not a large accumulation. You can drag the time slider, often its easier to see where the obstacle is by viewing the lidar points at different timestamps, e.g. the second image below is from further away, and there its easier to see the accumulation.
+            <br/> Speedbump example. These are the hardest to label. Difficult to see in the lidar points because there is not a large accumulation. You can drag the time slider, often its easier to see where the obstacle is by viewing the lidar points at different timestamps, e.g. the second image below is from further away, and there its easier to see the accumulation.<br/>
             <img src="http://localhost:7100/examples/speedbump.png">
-            <br/> Same speedbump from above, but from further away. The point cloud accumulation is easier to see now.
+            <br/> Same speedbump from above, but from further away. The point cloud accumulation is easier to see now.<br/>
             <img src="http://localhost:7100/examples/speedbump3.png">
-            <br/> Pole. Easy to see in the video at the end. But at the end of the measurement, there are no lidar points for the area where the pole is located. Therefore, use the timestamp slider to go back in time to where the pole is visible, as shown in the 2nd image below.
+            <br/> Pole. Easy to see in the video at the end. But at the end of the measurement, there are no lidar points for the area where the pole is located. Therefore, use the timestamp slider to go back in time to where the pole is visible, as shown in the 2nd image below.<br/>
             <img src="http://localhost:7100/examples/pole1.png">
             <img src="http://localhost:7100/examples/pole2.png">
         </div>
@@ -365,13 +370,21 @@
       }
 
       document.addEventListener("DOMContentLoaded", function () {
-        const images = document.querySelectorAll('img');
         const productionURL = 'fe-c-017ev.lr.de.bosch.com';
         if (window.location.hostname === productionURL) {
+            const images = document.querySelectorAll('img');
+            const mp4s = document.querySelectorAll('source')
             images.forEach((img) => {
                 ['localhost', '127.0.0.1'].forEach((localhost) => {
                     if (img.src.includes(localhost)) {
                         img.src = img.src.replace(localhost, productionURL)
+                    }
+                })
+            })
+            mp4s.forEach((mp4) => {
+                ['localhost', '127.0.0.1'].forEach((localhost) => {
+                    if (mp4.src.includes(localhost)) {
+                        mp4.src = img.src.replace(localhost, productionURL)
                     }
                 })
             })
