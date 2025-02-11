@@ -408,7 +408,7 @@
             mp4s.forEach((mp4) => {
                 ['localhost', '127.0.0.1'].forEach((localhost) => {
                     if (mp4.src.includes(localhost)) {
-                        mp4.src = img.src.replace(localhost, productionURL)
+                        mp4.src = mp4.src.replace(localhost, productionURL)
                     }
                 })
             })
