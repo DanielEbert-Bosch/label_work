@@ -144,48 +144,71 @@
       <h2>Labeling Guide</h2>
       <div id="labeling-instructions">
         <ol>
-          <li>Open Measurement</li>
+          <li><strong>Open Measurement</strong></li>
           <li>
-            [First time only] Watch the video below for a quick getting started guide. 
-            This video shows how to visualize: In the opened window, open the side
-            panel and select "Object PCD *" and "Road PCD *" and "Contour *". If
-            multiple * are available, select the most recent timestamp.
+            [<strong>Initial Setup</strong> (First time only)] If its your first time labeling, watch the video below for a quick overview. Then, in the opened window
+            <ul>
+                <li>Hover over the '<' icon (top right) to open the side panel.</li>
+                <li>Select these layers (most recent timestamp if multiple options):
+                <ul>
+                    <li>"Object PCD *"</li>
+                    <li>"Road PCD *"</li>
+                    <li>"Contour *"</li>
+                </ul>
+                </li>
+            </ul> 
           </li>
           <li>
-            If there is anything wrong, for example no videos or no obstacles are visible,
-            please post a link to the opened Measurement in the Labeling Taskforce team chat,
-            and close the measurement and go to step 1.
+            <strong>Troubleshooting: Report Issues</strong>
+            If anything seems wrong (e.g., no video, missing obstacles), immediately:
+            <ul>
+                <li>Share the measurement link in the Labeling Taskforce chat or with Daniel (ebd7rng).</li>
+                <li>Close the measurement and return to step 1.</li>
+            </ul> 
           </li>
           <li>
-            Click multiple times to create a polygon around the obstacle. The
-            polygon must have at minimum 4 points. The points must be outside
-            the obstacle, but as close as possible to the obstacle.
+            <strong>Create Polygon: Label Obstacle:</strong>
+            In the right panel, click to create points around the obstacle's corners.
+            <ul>
+                <li>Always label 1 obstacle (not more): The obstacle we are driving towards (no matter if we are driving forward or backward). Ignore other obstacles, such as a wall further away.</li>
+                <li>Minimum 4 points.</li>
+                <li>Points should be just outside the obstacle.</li>
+                <li>Double-click to finalize the polygon.</li>
+            </ul>
           </li>
           <li>
-            Hover over a corner point to display the object type and height. If possible with the video, verify that the object type and height are valid.
+            <strong>Verify Metadata: Check Object Type & Height</strong>
+            <br/>
+            Hover over a polygon corner to see object type and height.
+            <ul>
+                <li>Use the video (left side) to confirm the metadata is correct.</li>
+                <li>Refer to example images below for valid/invalid metadata examples.</li>
+                <li>If metadata is wrong, report the issue as in step 3 and restart.</li>
+            </ul>
           </li>
           <li>
-            [Optional] To restart, e.g. when something goes wrong, reload the
-            page and go to step 4.
+            <strong>Optional Restart: Redo Polygon</strong>
+            <br/>
+            To restart the polygon (e.g., if you misclicked), simply reload the page and go back to step 4.
           </li>
           <li>
-            Save the label: Press "s" to save. Make sure the Save Icon in the
-            top right plot corner turns green. This step is easy to forget.
+            <strong>Save Label: Press "s" (Green Icon Confirmation!)</strong>
+            <br/>
+            Press "s" to save.  <strong>Ensure the Save icon (top right) turns GREEN to confirm saving.</strong>
           </li>
         </ol>
 
         <p>
-          Teamwork: Work as a team! Share tips, tricks, and insights on
-          effective and accurate labeling. Discuss challenging cases and support
+          <strong>Teamwork:</strong> Work as a team! Share tips, tricks, and insights on
+          effective and accurate labeling in the Labeling Taskforce Teams Chat. Discuss challenging cases and support
           each other to maintain consistent quality. Knowledge sharing is
           crucial.
         </p>
-        <p>
-          If you have any questions, please reach out to Daniel (ebd7rng) on
-          Teams or in the Labeling Taskforce team chat.
-        </p>
-        <p>Example Labeling of a Measurement.</p>
-        <video width="640" height="360" controls preload="metadata">
+        <p><strong>Questions?</strong> Contact Daniel (ebd7rng) on Teams or in the Labeling Taskforce chat anytime. Happy to help! ^_^</p>
+        <p><strong>Example Labeling & Scenarios:</strong> See the examples below for visual guidance.</p>
+
+        Example Labeling of a Measurement:<br/>
+        <video width="1280" height="500" controls preload="metadata">
           <source
             src="http://localhost:7100/examples/labelExample.mp4"
             type="video/mp4"
@@ -194,19 +217,19 @@
         </div>
         <h2>Example Labeled Measurements</h2>
         <div id="labeling-examples">
-            <br/>Box Example. Lidar points with a height of >15cm have a different color, in this example a black color. Therefore, if our obstacle is high, draw a polygon around the black points. Checkout the video to see what type of obstacle we are driving towards.<br/>
+            <br/>Box Example. Lidar points above 15cm are colored differently (in this case: black). Therefore, draw a polygon around these black points. Watch the video on the left to understand the obstacle type.<br/>
             <img src="http://localhost:7100/examples/box.png">
-            <br/>Points very close to the obstacle are not shown, therefore it is often useful to go back in time by dragging the slider:<br/>
+            <br/>Points very close to the obstacle are hidden. Use the time slider to go back and see points closer to the obstacle.<br/>
             <img src="http://localhost:7100/examples/timeSlider.png">
-            <br/>In scenes with an obstacle of height >15cm its often useful to turn off the road points. Road points have height <15cm. To toggle road points on and off:<br/>
+            <br/>For obstacles >15cm, turning off road points (height <15cm) can be helpful. Toggle road points here:<br/>
             <img src="http://localhost:7100/examples/showRoadPcd.png">
-            <br/>And for heigh obstacles, its easy to see and label the obstacle:<br/>
+            <br/>And for heigh obstacles, its easier to identify and label the obstacle:<br/>
             <img src="http://localhost:7100/examples/box8.png">
-            The obstacle is where there is an accumulation of points, e.g.:<br/>
+            The obstacle is where points accumulate:<br/>
             <img src="http://localhost:7100/examples/box2.png">
-            Very high obstacles block off any points, therefore for such obstacles there won't be any points behind the obstacle.<br/>
+            Very high obstacles block points behind them. This free space behind obstacles is an indication where the obstacle is placed, and therefore an indication for where we should place our label, for example:<br/>
             <img src="http://localhost:7100/examples/box3.png">
-            <br/> Hover over the polygon to show the obstacle type and height. Using the video and obstacle shape, that the metadata is valid.<br/>
+            <br/> Hover over polygons to check obstacle type and height. Verify metadata validity using the video and obstacle shape.<br/>
             <br/>Example of valid metadata:<br/>
             <img src="http://localhost:7100/examples/validMetadata.png">
             <br/> Example of invalid Metadata:<br/>
@@ -217,27 +240,28 @@
             <img src="http://localhost:7100/examples/box7.png">
             <img src="http://localhost:7100/examples/box9.png">
             <img src="http://localhost:7100/examples/box10.png">
-            <br/> Curbstone example. For obstacles with a height of <15cm, we just have 1 color for all points. This makes it harder to see where the obstacle is located. However, there is an accumulation along the bounding box of the obstacle:<br/>
+            <br/> Curbstone example. For obstacles <15cm, all points are the same color. Look for point accumulation along the obstacle's shape:<br/>
             <img src="http://localhost:7100/examples/curbstone1.png">
-            <br/> We can color the road points based on their height. This is often useful for low height obstacles. Guide:<br/>
+            <br/> Color-coding road points by height can help with low obstacles. Guide:<br/>
             <img src="http://localhost:7100/examples/colorRoadPoints.png">
-            <br/> This is the same curbstone from the image above, with color coding enabled. You can see that the curbstone points have a darker orange color, compared to the immediate surrounding points.<br/>
+            <br/> Curbstone example with road point color-coding. Curbstone points are darker orange.<br/>
             <img src="http://localhost:7100/examples/curbstone2.png">
-            <br/> Dummy Obstacle. Feel free to use more than 4 points to accurately capture the obstacle.<br/>
+            <br/> Dummy Obstacle. Use more than 4 points for accurate polygons.<br/>
             <img src="http://localhost:7100/examples/dummy1.png">
             <img src="http://localhost:7100/examples/dummy2.png">
-            <br/> Always label the one obstacle that we are driving towards. In rare cases, that obstacle can be some meters away.<br/>
+            <br/> Always label exactly one obstacle, the one we are driving towards. In rare cases, that obstacle can be some meters away.<br/>
             <img src="http://localhost:7100/examples/farAway.png">
-            <br/> In this scenario, its very hard to see the obstacle in the lidar camera on the left. In this case, rely on the lidar points on the right.<br/>
+            <br/> Obstacles may be hard to see in the video. Rely on lidar points in such cases.<br/>
             <img src="http://localhost:7100/examples/hardToSee.png">
             <img src="http://localhost:7100/examples/hardToSee2.png">
             <img src="http://localhost:7100/examples/highObstacle.png">
-            <br/> Speedbump example. These are the hardest to label. Difficult to see in the lidar points because there is not a large accumulation. You can drag the time slider, often its easier to see where the obstacle is by viewing the lidar points at different timestamps, e.g. the second image below is from further away, and there its easier to see the accumulation.<br/>
+            <br/> Speedbump example. Hardest to label. Use the time slider to see point accumulation from different angles. If you are unsure, report (post link in Labeling Taskforce teams chat) and skip the measurement.<br/>
             <img src="http://localhost:7100/examples/speedbump.png">
-            <br/> Same speedbump from above, but from further away. The point cloud accumulation is easier to see now.<br/>
+            <br/> Same speedbump, further away. Point cloud accumulation is clearer.<br/>
             <img src="http://localhost:7100/examples/speedbump3.png">
-            <br/> Pole. Easy to see in the video at the end. But at the end of the measurement, there are no lidar points for the area where the pole is located. Therefore, use the timestamp slider to go back in time to where the pole is visible, as shown in the 2nd image below.<br/>
+            <br/> Pole. Easy to see in the video later in the measurement, but lidar points may disappear. Use the time slider to go back to where the pole is visible in lidar, and draw a polygon there.<br/>
             <img src="http://localhost:7100/examples/pole1.png">
+            <br/> Same pole, further away. Point cloud accumulation is clearer.<br/>
             <img src="http://localhost:7100/examples/pole2.png">
         </div>
       </div>
