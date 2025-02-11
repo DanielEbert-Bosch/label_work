@@ -94,7 +94,6 @@
         font-weight: bold;
       }
 
-      #whyGuide
       #labeling-instructions {
         text-align: left;
       }
@@ -144,14 +143,14 @@
 
       <div id="whyGuide">
       <h3>Why do we need labeling?</h3>
-        <ul>
+        <ul style="text-align: left;">
             <li>The labels you create are used to train a Machine Learning (ML) algorithm.</li>
             <li>This algorithm will be able to detect the height of an obstacle in the environment.</li>
             <li>We need you to mark *where* the obstacle is located.</li>
         </ul>
 
         <h3>What do we see when labeling?</h3>
-        <ul>
+        <ul style="text-align: left;">
             <li>Video recordings of driving scenarios.</li>
             <li>2D point clouds (lidar data) showing the environment as points. High density of points </li>
             <li>Visual hints in both video and point clouds that represent roads, objects, and obstacles.</li>
@@ -159,14 +158,14 @@
         </ul>
 
         <h3>Where do we want to go with labeling?</h3>
-        <ul>
+        <ul style="text-align: left;">
             <li>To create a dataset of accurately labeled obstacles in various parking situations with various types of obstacles.</li>
             <li>For each recording, we aim to identify and precisely outline <strong>one</strong> key obstacle we are approaching.</li>
             <li>We want to ensure the labels include correct information about the obstacle type and height.</li>
         </ul>
 
         <h3>How do we do labeling (Detailed Guide below)?</h3>
-        <ul>
+        <ul style="text-align: left;">
             <li>We use a labeling tool that visualizes synchronized video and lidar data.</li>
             <li>We draw a polygon directly on the lidar point cloud to outline obstacles.</li>
             <li>We focus on labeling <strong>one</strong> specific obstacle in each recording.</li>
