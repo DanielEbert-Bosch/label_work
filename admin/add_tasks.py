@@ -173,26 +173,32 @@ def main():
     set_sia_link(sequences)
     set_labeled(sequences)
 
-    # sequence_id_to_bolf_path = get_sequence_id_to_bolf_path(sequences, organization_name)
+    sequence_id_to_bolf_path = get_sequence_id_to_bolf_path(sequences, organization_name)
+
+    breakpoint()
+
+    with open('labeltaskforce_bolfs_12_02_2025_14_28.json') as f:
+        ...
+
 
     # sequence to labeltaskcreate list
-    tasks = []
-    for sequence in sequences:
-        # check if valid
-        if sequence.checksum and sequence.sia_meas_id_path:
-            tasks.append(dataclasses.asdict(
-                LabelTaskCreate(fmc_id=str(sequence._id), fmc_data=json.dumps(sequence.fmc_data), measurement_checksum=sequence.checksum, sia_meas_id_path=sequence.sia_meas_id_path)
-            ))
+    # tasks = []
+    # for sequence in sequences:
+    #     # check if valid
+    #     if sequence.checksum and sequence.sia_meas_id_path:
+    #         tasks.append(dataclasses.asdict(
+    #             LabelTaskCreate(fmc_id=str(sequence._id), fmc_data=json.dumps(sequence.fmc_data), measurement_checksum=sequence.checksum, sia_meas_id_path=sequence.sia_meas_id_path)
+    #         ))
     
-    print(f'Requesting add of {len(tasks)} tasks.')
+    # print(f'Requesting add of {len(tasks)} tasks.')
 
-    r = requests.post(f'{REST_API_URL}/api/add_tasks', headers=REST_API_HEADERS, data=json.dumps(tasks))
-    assert r.status_code == 200, r.text
-    pprint(r.json())
+    # r = requests.post(f'{REST_API_URL}/api/add_tasks', headers=REST_API_HEADERS, data=json.dumps(tasks))
+    # assert r.status_code == 200, r.text
+    # pprint(r.json())
 
-    r = requests.get(f'{REST_API_URL}/api/metrics', headers=REST_API_HEADERS)
-    assert r.status_code == 200, r.text
-    pprint(r.json())
+    # r = requests.get(f'{REST_API_URL}/api/metrics', headers=REST_API_HEADERS)
+    # assert r.status_code == 200, r.text
+    # pprint(r.json())
  
 
 
