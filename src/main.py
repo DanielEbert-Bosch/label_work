@@ -233,8 +233,8 @@ async def leaderboard(db: Session = Depends(get_db)):
         leaderboard[labeler] = count
     
     sorted_leaderboard_items = sorted(leaderboard.items(), key=lambda item: item[1], reverse=True)
-    top_8_items = sorted_leaderboard_items[:8]
-    return {labeler: count for labeler, count in top_8_items}
+    top_20_items = sorted_leaderboard_items[:20]
+    return {labeler: count for labeler, count in top_20_items}
 
 @app.get('/api/db_cleanup')
 async def db_cleanup(valid_ids: list[str], db: Session = Depends(get_db)):

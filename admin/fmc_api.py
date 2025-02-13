@@ -1,7 +1,43 @@
 from azure.identity import AzureCliCredential
+from azure.core.credentials import TokenCredential, AccessToken
 from requests import get
+import time
 import logging
 logger = logging.getLogger(__name__)
+
+def calc_time(string):
+    global start_time
+
+    if string == "start":
+        start_time = time.time()
+    else:
+        end_time = time.time()
+        return  end_time - start_time
+
+
+class CachedCredential(TokenCredential):
+  def __init__(self, delegate: TokenCredential, logger) -> None:
+    self.delegate = delegate
+    self.logger = logger
+    self._token : dict[str, AccessToken] = {}
+
+  def get_token(self, scope: str, **kwargs) -> AccessToken:
+    token = self._token.get(scope)
+    if not token or token.expiry < time.time():
+      calc_time("start")
+      self._token[scope] = token = self.delegate.get_token(scope, **kwargs)
+      elapsed_time = calc_time("end")
+      self.logger.info(
+            f"Time taken to generate token(CachedCredential) is {elapsed_time:.2f} seconds."
+        )
+    else:
+        self.logger.info(
+            f"Valid token exists"
+        )
+    return token
+
+
+cachedCredential = CachedCredential(AzureCliCredential(), logger)
 
 def request_fmc_token(organization_name, stage='prod'):
     """
@@ -9,9 +45,7 @@ def request_fmc_token(organization_name, stage='prod'):
 
     organization_name e.g. nrcs-2-pf, ford-dat-3, uss-gen-6-pf
     """
-    azure_cli = AzureCliCredential()
-    token = azure_cli.get_token(f'api://api-data-loop-platform-{organization_name}-{stage}/.default')
-    return token.token
+    return cachedCredential.get_token(f'api://api-data-loop-platform-{organization_name}-{stage}/.default').token
 
 
 def get_sequence(sequence_id, organization_name, fmc_token):
@@ -45,7 +79,7 @@ def get_sequences(fmc_query, organization_name, fmc_token):
 
     sequences = []
 
-    items_per_page = 100
+    items_per_page = 1000
 
     is_there_more_sequences = True
     page_index = 0

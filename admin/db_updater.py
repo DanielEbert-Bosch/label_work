@@ -167,13 +167,45 @@ class LabelTaskCreate:
     sia_meas_id_path: str
 
 
-def main():
+def send_new_tasks(sequences: list[Sequence]):
+    # sequence to labeltaskcreate list
+    tasks = []
+    for sequence in sequences:
+        # check if valid
+        if sequence.checksum and sequence.sia_meas_id_path:
+            tasks.append(dataclasses.asdict(
+                LabelTaskCreate(fmc_id=str(sequence._id), fmc_data=json.dumps(sequence.fmc_data), measurement_checksum=sequence.checksum, sia_meas_id_path=sequence.sia_meas_id_path)
+            ))
+    
+    print(f'Requesting add of {len(tasks)} tasks.')
+
+    breakpoint()
+    r = requests.post(f'{REST_API_URL}/api/add_tasks', headers=REST_API_HEADERS, data=json.dumps(tasks))
+    if r.status_code == 200:
+        print('send new tasks successful')
+        return
+    
+    print('send new tasks failed', r.status_code)
+    print(r.text)
+
+
+def send_set_labeled(labeled_tasks: list[Sequence]):
+    r = requests.post(f'{REST_API_URL}/api/set_labeled', headers=REST_API_HEADERS, data=json.dumps(labeled_tasks))
+    if r.status_code == 200:
+        print('send set labeled successful')
+        return
+    
+    print('send set labeled failed', r.status_code)
+    print(r.text)
+
+
+def run():
     organization_name = 'nrcs-2-pf'
     fmc_token = request_fmc_token(organization_name)
     # 'Sequence.name = "1P_DE_LBXQ6155_ZEUS_20250205_171724__HC"'
     # fmc_query = 'MeasurementFile.checksum = "06120852e9ace6ce4285dc8943c0ea362c7b843cc7bb0efa4251fc778a8fa014"'
     # fmc_query = 'Sequence.name ~ "Z_LBXO1994_C1_DEV_ARGUS_LIDAR_MTA2.0_Recording"'
-    fmc_query = 'Car.licensePlate = "LBXQ6155" and Sequence.recordingDate > "2025-01-01" and ReferenceFile.type = "PCAP"'
+    fmc_query = 'Car.licensePlate = "LBXQ6155" and Sequence.recordingDate > "2025-02-01" and ReferenceFile.type = "PCAP" and ReferenceFile.type = "JSON_METADATA"'
 
     if not DO_TESTING:
         fmc_sequences = get_sequences(fmc_query, organization_name, fmc_token)
@@ -189,38 +221,25 @@ def main():
     set_sia_link(sequences)
     set_labeled(sequences)
 
+    send_new_tasks(sequences)
+
+    labeled_tasks = get_labeled_sequences(sequences)
+    send_set_labeled(labeled_tasks)
+
     sequence_id_to_bolf_path = get_sequence_id_to_bolf_path(sequences, organization_name)
-
-    labeled_tasks = get_labeled_sequences() 
-    
-    # r = requests.post(f'{REST_API_URL}/api/set_labeled', headers=REST_API_HEADERS, data=json.dumps(labeled_tasks))
-    # assert r.status_code == 200, r.text
-    # pprint(r.json())
+    with open('labeltaskforce_bolfs_13_02_2025_14_48.json', 'w') as f:
+        f.write(json.dumps(sequence_id_to_bolf_path))
+        ...
+    # TODO: automate
 
 
-    # with open('labeltaskforce_bolfs_12_02_2025_14_28.json') as f:
-    #     ...
-
-
-    # sequence to labeltaskcreate list
-    # tasks = []
-    # for sequence in sequences:
-    #     # check if valid
-    #     if sequence.checksum and sequence.sia_meas_id_path:
-    #         tasks.append(dataclasses.asdict(
-    #             LabelTaskCreate(fmc_id=str(sequence._id), fmc_data=json.dumps(sequence.fmc_data), measurement_checksum=sequence.checksum, sia_meas_id_path=sequence.sia_meas_id_path)
-    #         ))
-    
-    # print(f'Requesting add of {len(tasks)} tasks.')
-
-    # r = requests.post(f'{REST_API_URL}/api/add_tasks', headers=REST_API_HEADERS, data=json.dumps(tasks))
-    # assert r.status_code == 200, r.text
-    # pprint(r.json())
-
-    # r = requests.get(f'{REST_API_URL}/api/metrics', headers=REST_API_HEADERS)
-    # assert r.status_code == 200, r.text
-    # pprint(r.json())
- 
+def main():
+    while True:
+        print('Token expires:')
+        os.system('az account get-access-token --query expiresOn --output json')
+        print('tick')
+        run()
+        time.sleep(60 * 5)
 
 
 if __name__ == '__main__':
