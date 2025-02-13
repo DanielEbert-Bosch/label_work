@@ -221,6 +221,8 @@ def run():
     set_sia_link(sequences)
     set_labeled(sequences)
 
+    breakpoint()
+
     send_new_tasks(sequences)
 
     labeled_tasks = get_labeled_sequences(sequences)
