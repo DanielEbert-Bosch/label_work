@@ -23,7 +23,11 @@ SUPPORT_MF4 = True
 DO_TESTING = os.getenv('DO_TESTING', '0') != '0'
 
 # TODO: update url
-REST_API_URL = 'http://localhost:7100'
+if DO_TESTING:
+    REST_API_URL = 'http://localhost:7100'
+else:
+    REST_API_URL = 'http://fe-c-017ev.lr.de.bosch.com:7100'
+
 REST_API_HEADERS = {
     'accept': 'application/json',
     'Content-Type': 'application/json'
@@ -124,12 +128,24 @@ def get_sequence_id_to_bolf_path(sequences: list[Sequence], organization_name):
         if sequence.label_bolf_path:
             ret[sequence._id] = { 
                 'path': sequence.label_bolf_path,
-                'type_of_label': 'kpi_generated_bolf'  # TODO: maybe pipeline requires kpi_generated_bolf
+                'type_of_label': 'KPI_GENERATED_BOLF'
             }
 
     return {
         organization_name: ret
     }
+
+
+def get_labeled_sequences(sequences: list[Sequence]):
+    ret = []
+    for sequence in sequences:
+        if sequence.label_bolf_path:
+            ret.append({
+                'measurement_checksum': sequence.checksum,
+                'label_bolf_path': sequence.label_bolf_path
+            })
+    
+    return ret
 
 
 def get_labeler_ranking(sequences: list[Sequence]):
@@ -175,10 +191,15 @@ def main():
 
     sequence_id_to_bolf_path = get_sequence_id_to_bolf_path(sequences, organization_name)
 
-    breakpoint()
+    labeled_tasks = get_labeled_sequences() 
+    
+    # r = requests.post(f'{REST_API_URL}/api/set_labeled', headers=REST_API_HEADERS, data=json.dumps(labeled_tasks))
+    # assert r.status_code == 200, r.text
+    # pprint(r.json())
 
-    with open('labeltaskforce_bolfs_12_02_2025_14_28.json') as f:
-        ...
+
+    # with open('labeltaskforce_bolfs_12_02_2025_14_28.json') as f:
+    #     ...
 
 
     # sequence to labeltaskcreate list

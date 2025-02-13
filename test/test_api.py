@@ -103,11 +103,24 @@ def get_index():
     assert r.status_code == 200, r.text
 
 
+@log_test
+def skip_task():
+    skipped_task = {
+        'sia_link': 'https://qa.sia.bosch-automotive-mlops.com/?time=46300&minimalLabelMode=true&minimalLabelModeUser=user&stream=vhm&signal=velocityInMPerS&measId=%2Fdyperexprod%2Fnrcs-2-pf%2Fbeea0130a88cf11be3e4e8980e4cb9f669e450e3189bf698615181765c1516e1%2F1P_DE_LBXQ6155_ZEUS_20250122_153421__HC.bytesoup_lz4.rof',
+        'skip_reason': 'wrong_metadata'
+    }
+
+    r = requests.post(f'{REST_API_URL}/api/skip_task', headers=REST_API_HEADERS, data=json.dumps(skipped_task))
+    assert r.status_code == 200, r.text
+    assert r.json()['sia_link'] == skipped_task['sia_link'], r.text
+
+
 if __name__ == '__main__':
     add_tasks()
     get_task()
     set_labeled()
     get_leaderboard()
     get_index()
+    skip_task()
 
     print('All tests successful.')

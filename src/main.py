@@ -57,6 +57,19 @@ class LabelTask(Base):
     created_at_epoch: Mapped[int] = mapped_column(Integer)
 
 
+class SkippedTaskCreate(BaseModel):
+    sia_link: str
+    skip_reason: str
+
+
+class SkippedTask(Base):
+    __tablename__ = 'skipped_tasks'
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    # raw content pasted into text field
+    sia_link: Mapped[str] = mapped_column(String, index=True)
+    skip_reason: Mapped[str] = mapped_column(String, index=True)
+
+
 class Metric(Base):
     __tablename__ = 'metrics_history'
 
@@ -155,6 +168,16 @@ async def add_tasks(tasks: list[LabelTaskCreate], db: Session = Depends(get_db))
         created_tasks.append(task.model_dump())
 
     return {'created_tasks': created_tasks}
+
+@app.post('/api/skip_task')
+async def set_skipped(skipped_task: SkippedTaskCreate, db: Session = Depends(get_db)):
+    if not skipped_task.sia_link:
+        raise HTTPException(status_code=400, detail=f'Invalid sia_link {skipped_task.sia_link}')
+    skip_task = SkippedTask(sia_link=skipped_task.sia_link, skip_reason=skipped_task.skip_reason)
+    db.add(skip_task)
+    db.commit()
+    db.refresh(skip_task)
+    return skip_task
 
 
 @app.get('/api/backup_db')

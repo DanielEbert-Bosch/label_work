@@ -4,6 +4,6 @@ docker compose down
 rm -f db/test/label_work.db
 docker compose up -d
 # wait for fastapi to start
-sleep 3
+sleep 6
 python test/test_api.py
 

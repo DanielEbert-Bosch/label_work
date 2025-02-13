@@ -2,6 +2,7 @@
 <html>
   <head>
     <title>Bosch Label Taskforce</title>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     <style>
       body {
         font-family: sans-serif;
@@ -116,6 +117,99 @@
           padding: 20px;
         }
       }
+
+      .skipPanel {
+        margin-top: 40px;
+            padding: 20px;
+            /* General container styling */
+            border: 1px solid #ccc;
+            margin-bottom: 20px; /* Add some space below the panel */
+            background-color: #f9f9f9; /* Light background */
+            border-radius: 5px;        /* Rounded corners */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Subtle shadow */
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .skipPanel h2 {
+            /* Heading styling */
+            font-size: 1.2em;      /* Slightly larger font */
+            margin-top: 0;         /* Remove default top margin */
+            margin-bottom: 15px;   /* Space below the heading */
+            color: #333;          /* Darker text color */
+            border-bottom: 1px solid #eee; /* Subtle bottom border */
+            padding-bottom: 5px;
+        }
+
+        .skipPanel label {
+            /* Label styling */
+            display: block;        /* Make labels block-level */
+            margin-bottom: 5px;    /* Space below each label */
+            font-weight: bold;     /* Make labels bold */
+        }
+
+        .skipPanel select,
+        .skipPanel input[type="text"] {
+            /* Styling for select and text input */
+            width: 100%;            /* Full width of the container */
+            padding: 10px;          /* Padding inside the elements */
+            margin-bottom: 15px;   /* Space below each input */
+            border: 1px solid #ccc;  /* Border */
+            border-radius: 4px;     /* Rounded corners */
+            box-sizing: border-box; /* Include padding and border in element's total width and height */
+            font-size: 1em;
+        }
+
+        .skipPanel select {
+            appearance: none; /* Remove default arrow in some browsers */
+            -webkit-appearance: none; /* For Safari */
+            -moz-appearance: none; /* For Firefox */
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23333'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E"); /* Custom down arrow */
+            background-repeat: no-repeat;
+            background-position: right 10px center;  /* Position of custom down arrow */
+            background-size: 1.1em;  /*Size of down arrow*/
+            padding-right: 30px;    /* Add space on right side to prevent text overlap on arrow*/
+            max-width: fit-content;
+        }
+
+        /* Style for the select dropdown arrow (optional, for more control) */
+        .skipPanel select::-ms-expand {
+            display: none; /* Hide default arrow in IE */
+        }
+
+        .skipPanel input[type="text"]::placeholder {
+            /* Placeholder text styling */
+            color: #999;
+        }
+
+        .skipPanel button {
+            /* Button styling */
+            background-color: #007bff; /* Primary button color (adjust as needed) */
+            color: white;             /* Text color */
+            padding: 10px 15px;       /* Padding */
+            border: none;              /* No border */
+            border-radius: 4px;        /* Rounded corners */
+            cursor: pointer;          /* Change cursor on hover */
+            font-size: 1em;          /* Font size */
+            transition: background-color 0.3s ease; /* Smooth transition for hover effect */
+            display: block;         /* Make button a block element */
+            width: 100%;          /* Occupy full container width */
+            margin-top: 10px;      /* Add space above the button */
+        }
+
+        .skipPanel button:hover {
+            /* Button hover state */
+            background-color: #b30095; /* Darker shade on hover */
+        }
+
+        .skipPanel button:focus{
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.5); /* Focus outline, accessible */
+        }
+
+        #skipReasonPanel {
+            max-width: fit-content;
+        }
     </style>
   </head>
   <body>
@@ -128,6 +222,22 @@
       <button class="nextmeasurement-button" onclick="openMeasurement()">
         Open Measurement
       </button>
+
+      <div class="skipPanel">
+        <div id="skipReasonPanel">
+            <label for="skipReason">Problem with the Measurement:</label>
+            <select id="skipReason" name="skipReason">
+                <option value="placeholder">Select Reason...</option>
+                <option value="video_unclear">Object Type unclear in Video/Lidar</option>
+                <option value="wrong_metadata">Wrong Object Type or Height (hint: type shown only in manually created label)</option>
+                <option value="no_data">No or uncomplete Lidar/Video Data (hint: check if reload fixes it first ^_^)</option>
+                <option value="no_obstacles">No obstacle in the scene</option>
+                <option value="Other">Other Reason - please send here and also report in USS7PER Labeling Kickoff chat</option>
+            </select>
+        </div>
+        <input type="text" id="problematic_sia_url" name="otherReasonText" placeholder="Link To Measurement" style="font-size: smaller;">
+        <button id="reportProblemButton" type="button" onclick="onSkipMeasurement()">Send Problem Report</button>
+      </div>
 
       <div id="xp-bar-container">
         <div id="xp-bar">
@@ -393,11 +503,50 @@
             currentXP += 73;
             setXPBar(currentXP);
             localStorage.setItem("labelingXP", currentXP);
+
+            document.getElementById("problematic_sia_url").value = sia_url;
           })
           .catch((error) => {
             console.error("Fetch error:", error);
             alert("Failed to fetch data. See console for details.");
           });
+      }
+
+      function onSkipMeasurement() {
+        skip_data = {
+            skip_reason: document.getElementById("skipReason").value,
+            sia_link: document.getElementById('problematic_sia_url').value
+        }
+
+        if (skip_data.skip_reason == 'placeholder') {
+            alert('Please select a skip reason and send again :)');
+            return;
+        }
+
+        if (skip_data.sia_link == '') {
+            alert('Please set the url to the measurement and send again :)');
+            return;
+        }
+
+        fetch(`http://${backend}:7100/api/skip_task`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(skip_data),
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            Toastify({
+                text: "Measurement Report sent successfully ^_^",
+                duration: 3000
+            }).showToast();
+        })
+        .catch(error => {
+            console.error('Error in measurement report:', error);
+        });
       }
 
       function setXPBar(currentXP) {
@@ -473,5 +622,6 @@
         }
       });
     </script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
   </body>
 </html>
