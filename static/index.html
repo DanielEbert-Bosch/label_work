@@ -228,9 +228,10 @@
             <label for="skipReason">Problem with the Measurement:</label>
             <select id="skipReason" name="skipReason">
                 <option value="placeholder">Select Reason...</option>
-                <option value="video_unclear">Object Type unclear in Video/Lidar</option>
-                <option value="wrong_metadata">Wrong Object Type or Height (hint: type shown only in manually created label)</option>
-                <option value="no_data">No or uncomplete Lidar/Video Data (hint: check if reload fixes it first ^_^)</option>
+                <option value="multiple_manouvers">Multiple forward and backward driving iterations in a single measurement.</option>
+                <option value="video_unclear">Object Type unclear in both Video and Lidar</option>
+                <option value="wrong_metadata">Wrong Object Type or Height (hint: type is shown only in manually created label)</option>
+                <option value="no_data">No or uncomplete Lidar/Video Data (hint: check if reload fixes it ^_^ )</option>
                 <option value="no_obstacles">No obstacle in the scene</option>
                 <option value="Other">Other Reason - please send here and also report in USS7PER Labeling Kickoff chat</option>
             </select>
