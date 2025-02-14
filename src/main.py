@@ -296,9 +296,8 @@ async def get_index_html(response: Response):
 
 @app.get('/leaderboard')
 async def get_leaderboard_html(response: Response):
-    response.headers['Cache-Control'] = 'no-cache'
     # TODO: add html text saying this not live, updated every day or so
-    return FileResponse('/static/leaderboard.html')
+    return FileResponse('/static/leaderboard.html', headers={'Cache-Control': 'no-cache'})
 
 @app.get('/map')
 async def get_map(labeler_name: str, level: int):
