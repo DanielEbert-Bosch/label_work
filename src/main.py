@@ -13,6 +13,7 @@ from fastapi.responses import FileResponse
 from urllib.parse import quote
 from fastapi.staticfiles import StaticFiles
 import json
+from fastapi import FastAPI, Response
 
 sys.path.append(os.path.dirname(__file__))
 
@@ -289,11 +290,13 @@ async def db_cleanup(valid_ids: list[str], db: Session = Depends(get_db)):
 
 
 @app.get('/')
-async def get_index_html():
+async def get_index_html(response: Response):
+    response.headers['Cache-Control'] = 'no-cache'
     return FileResponse('/static/index.html')
 
 @app.get('/leaderboard')
-async def get_leaderboard_html():
+async def get_leaderboard_html(response: Response):
+    response.headers['Cache-Control'] = 'no-cache'
     # TODO: add html text saying this not live, updated every day or so
     return FileResponse('/static/leaderboard.html')
 
