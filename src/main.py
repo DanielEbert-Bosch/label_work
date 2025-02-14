@@ -290,13 +290,11 @@ async def db_cleanup(valid_ids: list[str], db: Session = Depends(get_db)):
 
 
 @app.get('/')
-async def get_index_html(response: Response):
-    response.headers['Cache-Control'] = 'no-cache'
-    return FileResponse('/static/index.html')
+async def get_index_html():
+    return FileResponse('/static/index.html', headers={'Cache-Control': 'no-cache'})
 
 @app.get('/leaderboard')
-async def get_leaderboard_html(response: Response):
-    # TODO: add html text saying this not live, updated every day or so
+async def get_leaderboard_html():
     return FileResponse('/static/leaderboard.html', headers={'Cache-Control': 'no-cache'})
 
 @app.get('/map')
