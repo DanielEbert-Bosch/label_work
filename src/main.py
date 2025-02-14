@@ -12,6 +12,7 @@ import datetime
 from fastapi.responses import FileResponse
 from urllib.parse import quote
 from fastapi.staticfiles import StaticFiles
+import json
 
 sys.path.append(os.path.dirname(__file__))
 
@@ -100,6 +101,7 @@ async def get_task(labeler_name: str, db: Session = Depends(get_db)):
     current_time_epoch = int(time.time())
     # TODO: i need to sync every min 4 days
     # TODO: remove LabeledTask.created_at_epoch < 1739449765 filter after video is there
+    # TODO: replace created_at_epoch with recorded_epoch
     db_task = db.query(LabelTask).filter(LabelTask.is_labeled == False).filter(LabelTask.created_at_epoch < 1739449765).filter((current_time_epoch - 60 * 60 * 24 * 4) > LabelTask.sent_label_request_at_epoch).order_by(func.random()).first()
     if not db_task:
         return {'finished': True}
@@ -115,6 +117,40 @@ async def get_task(labeler_name: str, db: Session = Depends(get_db)):
     db.refresh(db_task)
 
     return {'task': db_task, 'sia_url': sia_url}
+
+
+@app.get('/api/test_remove_realworld')
+async def get_task(db: Session = Depends(get_db)):
+    db_tasks = db.query(LabelTask).all()
+
+    cutoff_epoch = int(datetime.datetime.fromisoformat('2025-02-10T10:16:35.000Z'.replace('Z', '+00:00')).timestamp())
+
+    ids_to_delete = []
+
+    for task in db_tasks:
+        fmc_data_dict = json.loads(task.fmc_data)
+        if type(fmc_data_dict) != dict:
+            continue
+        if 'recordingDate' not in fmc_data_dict:
+            continue
+        recDate = fmc_data_dict['recordingDate']
+        recEpoch = int(datetime.datetime.fromisoformat(recDate.replace('Z', '+00:00')).timestamp())
+        if recEpoch > cutoff_epoch:
+            ids_to_delete.append(task.id)
+            print(recEpoch, cutoff_epoch)
+
+    del_count = 0
+
+    for id_val in ids_to_delete:
+        row_to_delete = db.query(LabelTask).filter(LabelTask.id == id_val).first()
+        if row_to_delete:
+            db.delete(row_to_delete)
+            del_count += 1
+    
+    db.commit()
+
+    return {'del_count': del_count, 'sum': len(ids_to_delete)}
+
 
 
 @app.post('/api/set_labeled')
@@ -250,6 +286,7 @@ async def db_cleanup(valid_ids: list[str], db: Session = Depends(get_db)):
     for row in remaining_rows:
         if row.fmc_id not in valid_ids:
             print(f'Problem, {row.fmc_id} not valid but still in table')
+
 
 @app.get('/')
 async def get_index_html():

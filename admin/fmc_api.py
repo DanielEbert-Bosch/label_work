@@ -23,6 +23,7 @@ class CachedCredential(TokenCredential):
 
   def get_token(self, scope: str, **kwargs) -> AccessToken:
     token = self._token.get(scope)
+    breakpoint()
     if not token or token.expiry < time.time():
       calc_time("start")
       self._token[scope] = token = self.delegate.get_token(scope, **kwargs)

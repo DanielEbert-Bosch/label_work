@@ -179,7 +179,6 @@ def send_new_tasks(sequences: list[Sequence]):
     
     print(f'Requesting add of {len(tasks)} tasks.')
 
-    breakpoint()
     r = requests.post(f'{REST_API_URL}/api/add_tasks', headers=REST_API_HEADERS, data=json.dumps(tasks))
     if r.status_code == 200:
         print('send new tasks successful')
@@ -205,13 +204,13 @@ def run():
     # 'Sequence.name = "1P_DE_LBXQ6155_ZEUS_20250205_171724__HC"'
     # fmc_query = 'MeasurementFile.checksum = "06120852e9ace6ce4285dc8943c0ea362c7b843cc7bb0efa4251fc778a8fa014"'
     # fmc_query = 'Sequence.name ~ "Z_LBXO1994_C1_DEV_ARGUS_LIDAR_MTA2.0_Recording"'
-    fmc_query = 'Car.licensePlate = "LBXQ6155" and Sequence.recordingDate > "2025-02-01" and ReferenceFile.type = "PCAP" and ReferenceFile.type = "JSON_METADATA"'
+    fmc_query = 'Car.licensePlate = "LBXQ6155" and Sequence.recordingDate > "2025-01-01" and ReferenceFile.type = "PCAP" and ReferenceFile.type = "JSON_METADATA"'
 
-    if not DO_TESTING:
-        fmc_sequences = get_sequences(fmc_query, organization_name, fmc_token)
-    else:
-        with open('cache/fmc_sequences.json') as f:
-            fmc_sequences = json.loads(f.read())
+    # if not DO_TESTING:
+    fmc_sequences = get_sequences(fmc_query, organization_name, fmc_token)
+    # else:
+    #     with open('cache/fmc_sequences.json') as f:
+    #         fmc_sequences = json.loads(f.read())
 
     print(f'Found {len(fmc_sequences)} sequences.')
 
@@ -221,17 +220,16 @@ def run():
     set_sia_link(sequences)
     set_labeled(sequences)
 
-    breakpoint()
-
-    send_new_tasks(sequences)
 
     labeled_tasks = get_labeled_sequences(sequences)
+    breakpoint()
+    send_new_tasks(sequences)
     send_set_labeled(labeled_tasks)
+    
 
     sequence_id_to_bolf_path = get_sequence_id_to_bolf_path(sequences, organization_name)
-    with open('labeltaskforce_bolfs_13_02_2025_14_48.json', 'w') as f:
+    with open('labeltaskforce_bolfs_latest.json', 'w') as f:
         f.write(json.dumps(sequence_id_to_bolf_path))
-        ...
     # TODO: automate
 
 
