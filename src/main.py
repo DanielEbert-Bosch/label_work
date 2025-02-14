@@ -102,7 +102,7 @@ async def get_task(labeler_name: str, db: Session = Depends(get_db)):
     # TODO: i need to sync every min 4 days
     # TODO: remove LabeledTask.created_at_epoch < 1739449765 filter after video is there
     # TODO: replace created_at_epoch with recorded_epoch
-    db_task = db.query(LabelTask).filter(LabelTask.is_labeled == False).filter(LabelTask.created_at_epoch < 1739449765).filter((current_time_epoch - 60 * 60 * 24 * 4) > LabelTask.sent_label_request_at_epoch).order_by(func.random()).first()
+    db_task = db.query(LabelTask).filter(LabelTask.is_labeled == False).filter((current_time_epoch - 60 * 60 * 24 * 4) > LabelTask.sent_label_request_at_epoch).order_by(func.random()).first()
     if not db_task:
         return {'finished': True}
 
@@ -120,7 +120,7 @@ async def get_task(labeler_name: str, db: Session = Depends(get_db)):
 
 
 @app.get('/api/test_remove_realworld')
-async def get_task(db: Session = Depends(get_db)):
+async def test_remove(db: Session = Depends(get_db)):
     db_tasks = db.query(LabelTask).all()
 
     cutoff_epoch = int(datetime.datetime.fromisoformat('2025-02-10T10:16:35.000Z'.replace('Z', '+00:00')).timestamp())
