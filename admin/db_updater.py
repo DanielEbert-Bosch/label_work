@@ -13,7 +13,8 @@ from urllib.parse import quote
 from dataclasses import dataclass
 import dataclasses
 import requests
-from pprint import pprint
+from tqdm import tqdm
+from concurrent.futures import ProcessPoolExecutor
 
 from fmc_api import request_fmc_token, get_sequences
 
@@ -76,6 +77,13 @@ def set_labeled(sequences: list[Sequence]):
     qa_sia_blobstore = 'https://dypersiaqua.blob.core.windows.net/nrcs-2-pf/'
     qa_cmd = f'azcopy list --output-type=json --output-level=essential {qa_sia_blobstore}'
     qa_output = subprocess.check_output(qa_cmd, shell=True)
+
+    print('*** workaround')
+    with open('azcopy_dev_out.txt', 'wb') as f:
+        f.write(output)
+    with open('azcopy_qa_out.txt', 'wb') as f:
+        f.write(qa_output)
+    breakpoint()
 
     label_paths = []
     for server_output in output, qa_output:
@@ -198,19 +206,58 @@ def send_set_labeled(labeled_tasks: list[Sequence]):
     print(r.text)
 
 
+def fmcTimeToEpoch(ts: str) -> int:
+    return int(datetime.datetime.fromisoformat(ts.replace('Z', '+00:00')).timestamp())
+
+
+def check_video_exists(container, checksum, meas_name, d):
+    # sometimes video has bytesoup lz4 in name
+    cut_meas_name = meas_name.split('.')[0]
+    for name in list(set(cut_meas_name, meas_name)):
+        if os.path.exists(f'{container}/{checksum}/video_output/{meas_name}_{d}.mp4'):
+            return True
+    return False
+
+
+def check_fmc(sequence: Sequence):
+    fmc = sequence.fmc_data
+    container = '/home/jovyan/data/ReadOnly/dyperexprod/nrcs-2-pf'
+    # checksum = '3dbe19d68c1bc7c4d0bdc297062f4577ad60fa2920ba4d7842aef5cdf9c58893'
+    realWorldCutoffEpch = fmcTimeToEpoch('2025-02-10T01:01:01.000Z')
+
+    fmc_id = fmc['id']
+    meas_name = next((mf['path'].split('/')[-1] for mf in fmc['measurementFiles'] if 'bytesoup' in mf['path']), None)
+    checksum = next((mf['checksum'] for mf in fmc['measurementFiles'] if 'bytesoup' in mf['path']), None)
+    if not checksum or not meas_name.startswith('1P_DE_LBXQ6155_ZEUS'): return [], [], []
+
+    add_task, missing_processedlidar, missing_frontvideo, missing_previewvideo = [], [], [], []
+
+    if not os.path.exists(f'{container}/{checksum}/processed_lidar'):
+        missing_processedlidar.append(fmc_id)
+
+    if fmcTimeToEpoch(fmc['creationDate']) <= realWorldCutoffEpch:
+        if not check_video_exists(container, checksum, meas_name, 'front'):
+            missing_frontvideo.append(fmc_id)
+        else:
+            add_task.append(sequence)
+    else:
+        # real world scene
+        if not check_video_exists(container, checksum, meas_name, 'preview'):
+            raw_preview_available = any(referenceFile['type'] == 'PREVIEW_VIDEO_MERGED' for referenceFile in fmc['referenceFiles'])
+            if raw_preview_available:
+                missing_previewvideo.append(fmc_id)
+        else:
+            add_task.append(sequence)
+
+    return add_task, missing_processedlidar, missing_frontvideo, missing_previewvideo
+
+
 def run():
     organization_name = 'nrcs-2-pf'
     fmc_token = request_fmc_token(organization_name)
-    # 'Sequence.name = "1P_DE_LBXQ6155_ZEUS_20250205_171724__HC"'
-    # fmc_query = 'MeasurementFile.checksum = "06120852e9ace6ce4285dc8943c0ea362c7b843cc7bb0efa4251fc778a8fa014"'
-    # fmc_query = 'Sequence.name ~ "Z_LBXO1994_C1_DEV_ARGUS_LIDAR_MTA2.0_Recording"'
     fmc_query = 'Car.licensePlate = "LBXQ6155" and Sequence.recordingDate > "2025-01-01" and ReferenceFile.type = "PCAP" and ReferenceFile.type = "JSON_METADATA"'
 
-    # if not DO_TESTING:
     fmc_sequences = get_sequences(fmc_query, organization_name, fmc_token)
-    # else:
-    #     with open('cache/fmc_sequences.json') as f:
-    #         fmc_sequences = json.loads(f.read())
 
     print(f'Found {len(fmc_sequences)} sequences.')
 
@@ -220,23 +267,36 @@ def run():
     set_sia_link(sequences)
     set_labeled(sequences)
 
-
     labeled_tasks = get_labeled_sequences(sequences)
-    breakpoint()
-    send_new_tasks(sequences)
-    send_set_labeled(labeled_tasks)
     
+    add_task = []
+    missing_processedlidar = []
+    missing_frontvideo = []
+    missing_previewvideo = []
+
+    # TODO: need to run on jupyterhub now
+    with ProcessPoolExecutor() as executor:
+        results = list(tqdm(executor.map(check_fmc, sequences), total=len(fmc_sequences)))
+        for at, mpl, mfv, mpv in results:
+            add_task.extend(at)
+            missing_processedlidar.extend(mpl)
+            missing_frontvideo.extend(mfv)
+            missing_previewvideo.extend(mpv)
+
+    # TODO: probably best to do a DB clear for measurements that arent in here on first run
+    breakpoint()
+    send_new_tasks(add_task)
+ 
+    send_set_labeled(labeled_tasks)
 
     sequence_id_to_bolf_path = get_sequence_id_to_bolf_path(sequences, organization_name)
     with open('labeltaskforce_bolfs_latest.json', 'w') as f:
         f.write(json.dumps(sequence_id_to_bolf_path))
-    # TODO: automate
+        # TODO: automate to send to fmc
 
 
 def main():
     while True:
-        print('Token expires:')
-        os.system('az account get-access-token --query expiresOn --output json')
         print('tick')
         run()
         time.sleep(60 * 5)
