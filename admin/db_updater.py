@@ -256,7 +256,8 @@ def check_fmc(sequence: Sequence):
             if raw_preview_available:
                 missing_previewvideo.append(fmc_id)
         elif has_lidar:
-            add_task.append(sequence)
+            if False:  # TODO enable again when preview video fixed
+                add_task.append(sequence)
 
     return add_task, missing_processedlidar, missing_frontvideo, missing_previewvideo
 
