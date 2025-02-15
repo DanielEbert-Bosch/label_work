@@ -72,18 +72,15 @@ def set_labeled(sequences: list[Sequence]):
     # when run on blob store, think about how to speed this up
     sia_blobstore = 'https://dypersiadev.blob.core.windows.net/nrcs-2-pf/'
     cmd = f'azcopy list --output-type=json --output-level=essential {sia_blobstore}'
-    output = subprocess.check_output(cmd, shell=True)
+    # output = subprocess.check_output(cmd, shell=True)
+    with open('azcopy_dev_out.txt', 'rb') as f:
+        output = f.read()
 
     qa_sia_blobstore = 'https://dypersiaqua.blob.core.windows.net/nrcs-2-pf/'
     qa_cmd = f'azcopy list --output-type=json --output-level=essential {qa_sia_blobstore}'
-    qa_output = subprocess.check_output(qa_cmd, shell=True)
-
-    print('*** workaround')
-    with open('azcopy_dev_out.txt', 'wb') as f:
-        f.write(output)
-    with open('azcopy_qa_out.txt', 'wb') as f:
-        f.write(qa_output)
-    breakpoint()
+    # qa_output = subprocess.check_output(qa_cmd, shell=True)
+    with open('azcopy_qa_out.txt', 'rb') as f:
+        qa_output = f.read()
 
     label_paths = []
     for server_output in output, qa_output:
@@ -187,6 +184,10 @@ def send_new_tasks(sequences: list[Sequence]):
     
     print(f'Requesting add of {len(tasks)} tasks.')
 
+    with open('req_add_tasks.json', 'w') as f:
+        f.write(json.dumps(tasks))
+    return
+
     r = requests.post(f'{REST_API_URL}/api/add_tasks', headers=REST_API_HEADERS, data=json.dumps(tasks))
     if r.status_code == 200:
         print('send new tasks successful')
@@ -197,6 +198,10 @@ def send_new_tasks(sequences: list[Sequence]):
 
 
 def send_set_labeled(labeled_tasks: list[Sequence]):
+    with open('req_set_labeled.json', 'w') as f:
+        f.write(json.dumps(labeled_tasks))
+    return
+    
     r = requests.post(f'{REST_API_URL}/api/set_labeled', headers=REST_API_HEADERS, data=json.dumps(labeled_tasks))
     if r.status_code == 200:
         print('send set labeled successful')
@@ -213,8 +218,9 @@ def fmcTimeToEpoch(ts: str) -> int:
 def check_video_exists(container, checksum, meas_name, d):
     # sometimes video has bytesoup lz4 in name
     cut_meas_name = meas_name.split('.')[0]
-    for name in list(set(cut_meas_name, meas_name)):
-        if os.path.exists(f'{container}/{checksum}/video_output/{meas_name}_{d}.mp4'):
+    for name in list(set([cut_meas_name, meas_name])):
+        print(name)
+        if os.path.exists(f'{container}/{checksum}/video_output/{name}_{d}.mp4'):
             return True
     return False
 
@@ -232,13 +238,16 @@ def check_fmc(sequence: Sequence):
 
     add_task, missing_processedlidar, missing_frontvideo, missing_previewvideo = [], [], [], []
 
+    has_lidar = False
     if not os.path.exists(f'{container}/{checksum}/processed_lidar'):
         missing_processedlidar.append(fmc_id)
+    else:
+        has_lidar = True
 
     if fmcTimeToEpoch(fmc['creationDate']) <= realWorldCutoffEpch:
         if not check_video_exists(container, checksum, meas_name, 'front'):
             missing_frontvideo.append(fmc_id)
-        else:
+        elif has_lidar:
             add_task.append(sequence)
     else:
         # real world scene
@@ -246,7 +255,7 @@ def check_fmc(sequence: Sequence):
             raw_preview_available = any(referenceFile['type'] == 'PREVIEW_VIDEO_MERGED' for referenceFile in fmc['referenceFiles'])
             if raw_preview_available:
                 missing_previewvideo.append(fmc_id)
-        else:
+        elif has_lidar:
             add_task.append(sequence)
 
     return add_task, missing_processedlidar, missing_frontvideo, missing_previewvideo
@@ -285,6 +294,10 @@ def run():
 
     # TODO: probably best to do a DB clear for measurements that arent in here on first run
     breakpoint()
+
+    with open('valid_ids.txt', 'w') as f:
+        f.write(json.dumps([str(s._id) for s in add_task]))
+    
     send_new_tasks(add_task)
  
     send_set_labeled(labeled_tasks)
