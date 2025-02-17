@@ -113,7 +113,7 @@ async def get_task(labeler_name: str, db: Session = Depends(get_db)):
 
     encoded_name = quote(labeler_name)
 
-    sia_url = f'https://dev.sia.bosch-automotive-mlops.com/?time=99999&minimalLabelMode=true&minimalLabelModeUsername={encoded_name}&measId={db_task.sia_meas_id_path}'
+    sia_url = f'https://dev.sia.bosch-automotive-mlops.com/?time=0&minimalLabelMode=true&minimalLabelModeUsername={encoded_name}&measId={db_task.sia_meas_id_path}'
 
     db.commit()
     db.refresh(db_task)
