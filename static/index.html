@@ -229,6 +229,14 @@
         Open Measurement
       </button>
 
+    <div style="padding-top: 20px;">
+        <label for="openAtStartOrEnd" style="display: inline-block;">Opened Measurement begins at:</label>
+        <select id="openAtStartOrEnd" name="openAtStartOrEnd" style="display: inline-block;">
+            <option value="start">Start</option>
+            <option value="end">End</option>
+        </select>
+    </div>
+
       <div class="skipPanel">
         <div id="skipReasonPanel">
             <label for="skipReason">Problem with the Measurement:</label>
@@ -494,7 +502,13 @@
               return;
             }
 
-            const sia_url = data["sia_url"];
+            let sia_url = data["sia_url"];
+
+            if (document.getElementById('openAtStartOrEnd').value === 'end') {
+                sia_url = sia_url.replace('time=0', 'time=99999');
+            }
+
+            console.log(sia_url)
 
             const screenWidth = window.screen.availWidth;
             const screenHeight = window.screen.availHeight;
