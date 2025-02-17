@@ -72,13 +72,17 @@ def set_labeled(sequences: list[Sequence]):
     # when run on blob store, think about how to speed this up
     sia_blobstore = 'https://dypersiadev.blob.core.windows.net/nrcs-2-pf/'
     cmd = f'azcopy list --output-type=json --output-level=essential {sia_blobstore}'
-    # output = subprocess.check_output(cmd, shell=True)
+    output = subprocess.check_output(cmd, shell=True)
+    with open('azcopy_dev_out.txt', 'wb') as f:
+        f.write(output)
     with open('azcopy_dev_out.txt', 'rb') as f:
         output = f.read()
 
     qa_sia_blobstore = 'https://dypersiaqua.blob.core.windows.net/nrcs-2-pf/'
     qa_cmd = f'azcopy list --output-type=json --output-level=essential {qa_sia_blobstore}'
-    # qa_output = subprocess.check_output(qa_cmd, shell=True)
+    qa_output = subprocess.check_output(qa_cmd, shell=True)
+    with open('azcopy_qa_out.txt', 'wb') as f:
+        f.write(qa_output)
     with open('azcopy_qa_out.txt', 'rb') as f:
         qa_output = f.read()
 
@@ -238,7 +242,10 @@ def check_fmc(sequence: Sequence):
     add_task, missing_processedlidar, missing_frontvideo, missing_previewvideo = [], [], [], []
 
     has_lidar = False
-    if not os.path.exists(f'{container}/{checksum}/processed_lidar'):
+    if (
+            not os.path.exists(f'{container}/{checksum}/processed_lidar') or
+            len(os.listdir(f'{container}/{checksum}/processed_lidar')) < 2
+    ):
         missing_processedlidar.append(fmc_id)
     else:
         has_lidar = True
