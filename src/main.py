@@ -14,6 +14,7 @@ from urllib.parse import quote
 from fastapi.staticfiles import StaticFiles
 import json
 from fastapi import FastAPI, Response
+from collections import defaultdict
 
 sys.path.append(os.path.dirname(__file__))
 
@@ -266,9 +267,9 @@ async def get_metrics_history(db: Session = Depends(get_db)):
 @app.get('/api/leaderboard')
 async def leaderboard(db: Session = Depends(get_db)):
     leaderboard_data = db.query(LabelTask.last_labeler, func.count()).filter(LabelTask.last_labeler != None).group_by(LabelTask.last_labeler).all()
-    leaderboard = {}
+    leaderboard = defaultdict(int)
     for labeler, count in leaderboard_data:
-        leaderboard[labeler] = count
+        leaderboard[labeler.lower()] += count
     
     sorted_leaderboard_items = sorted(leaderboard.items(), key=lambda item: item[1], reverse=True)
     top_20_items = sorted_leaderboard_items[:20]
