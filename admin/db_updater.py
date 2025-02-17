@@ -219,7 +219,6 @@ def check_video_exists(container, checksum, meas_name, d):
     # sometimes video has bytesoup lz4 in name
     cut_meas_name = meas_name.split('.')[0]
     for name in list(set([cut_meas_name, meas_name])):
-        print(name)
         if os.path.exists(f'{container}/{checksum}/video_output/{name}_{d}.mp4'):
             return True
     return False
@@ -256,7 +255,7 @@ def check_fmc(sequence: Sequence):
             if raw_preview_available:
                 missing_previewvideo.append(fmc_id)
         elif has_lidar:
-            if False:  # TODO enable again when preview video fixed
+            if True:  # TODO enable again when preview video fixed
                 add_task.append(sequence)
 
     return add_task, missing_processedlidar, missing_frontvideo, missing_previewvideo
@@ -278,7 +277,7 @@ def run():
     set_labeled(sequences)
 
     labeled_tasks = get_labeled_sequences(sequences)
-    
+
     add_task = []
     missing_processedlidar = []
     missing_frontvideo = []
@@ -295,6 +294,16 @@ def run():
 
     # TODO: probably best to do a DB clear for measurements that arent in here on first run
     breakpoint()
+
+    with open('valid_ids.txt', 'w') as f:
+        f.write(json.dumps([str(s._id) for s in add_task]))
+    
+    with open('missing_data.json', 'w') as f:
+        f.write(json.dumps({
+            'missing_processedlidar': missing_processedlidar,
+            'missing_frontvideo': missing_frontvideo,
+            'missing_previewvideo': missing_previewvideo
+        }))
 
     with open('valid_ids.txt', 'w') as f:
         f.write(json.dumps([str(s._id) for s in add_task]))
