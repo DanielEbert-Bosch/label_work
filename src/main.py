@@ -286,7 +286,7 @@ async def db_cleanup(db: Session = Depends(get_db)):
     print(f'Deleted', rows_deleted)
 
     remaining_rows = db.query(LabelTask).all()
-    print('reamining len', len(remaining_rows))
+    print('Remaining len', len(remaining_rows))
     print("Remaining rows:")
     for row in remaining_rows:
         if row.fmc_id not in valid_ids:
