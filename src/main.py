@@ -263,7 +263,6 @@ async def get_metrics(db: Session = Depends(get_db)):
 async def get_metrics_history(db: Session = Depends(get_db)):
     return db.query(Metric).order_by(Metric.created_at_epoch).all()
 
-
 @app.get('/api/leaderboard')
 async def leaderboard(db: Session = Depends(get_db)):
     leaderboard_data = db.query(LabelTask.last_labeler, func.count()).filter(LabelTask.last_labeler != None).group_by(LabelTask.last_labeler).all()
@@ -274,6 +273,16 @@ async def leaderboard(db: Session = Depends(get_db)):
     sorted_leaderboard_items = sorted(leaderboard.items(), key=lambda item: item[1], reverse=True)
     top_20_items = sorted_leaderboard_items[:20]
     return {labeler: count for labeler, count in top_20_items}
+
+@app.get('/api/roland_special')
+async def roland_special(db: Session = Depends(get_db)):
+    leaderboard_data = db.query(LabelTask.last_labeler, func.count()).filter(LabelTask.last_labeler != None).group_by(LabelTask.last_labeler).all()
+    leaderboard = defaultdict(int)
+    for labeler, count in leaderboard_data:
+        leaderboard[labeler.lower()] += count
+    
+    sorted_leaderboard_items = sorted(leaderboard.items(), key=lambda item: item[1], reverse=True)
+    return {labeler: count for labeler, count in sorted_leaderboard_items}
 
 @app.get('/api/db_cleanup')
 async def db_cleanup(db: Session = Depends(get_db)):
