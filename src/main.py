@@ -101,10 +101,8 @@ class LabeledTask(BaseModel):
 @app.get('/api/get_task')
 async def get_task(labeler_name: str, db: Session = Depends(get_db)):
     current_time_epoch = int(time.time())
-    # TODO: i need to sync every min 4 days
-    # TODO: remove LabeledTask.created_at_epoch < 1739449765 filter after video is there
-    # TODO: replace created_at_epoch with recorded_epoch
-    db_task = db.query(LabelTask).filter(LabelTask.is_labeled == False).filter((current_time_epoch - 60 * 60 * 24 * 4) > LabelTask.sent_label_request_at_epoch).order_by(func.random()).first()
+    # TODO: for now current time epoch check infinity
+    db_task = db.query(LabelTask).filter(LabelTask.is_labeled == False).filter((current_time_epoch - 60 * 60 * 24 * 99) > LabelTask.sent_label_request_at_epoch).order_by(func.random()).first()
     if not db_task:
         return {'finished': True}
 
