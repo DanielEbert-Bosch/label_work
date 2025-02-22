@@ -17,7 +17,7 @@ import dataclasses
 import requests
 from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor
-from glob import glob
+
 
 import logging
 logger = logging.getLogger(__name__)
@@ -169,45 +169,23 @@ def set_referenceFileTypes(sequences: list[Sequence]):
 
 
 def set_labeled(sequences: list[Sequence]):
-    # when run on blob store, think about how to speed this up
-    # sia_blobstore = 'https://dypersiadev.blob.core.windows.net/nrcs-2-pf/'
-    # cmd = f'azcopy list --output-type=json --output-level=essential {sia_blobstore}'
-    # output = subprocess.check_output(cmd, shell=True)
-    # with open('azcopy_dev_out.txt', 'wb') as f:
-    #     f.write(output)
-    # with open('azcopy_dev_out.txt', 'rb') as f:
-    #     output = f.read()
-
-    # qa_sia_blobstore = 'https://dypersiaqua.blob.core.windows.net/nrcs-2-pf/'
-    # qa_cmd = f'azcopy list --output-type=json --output-level=essential {qa_sia_blobstore}'
-    # qa_output = subprocess.check_output(qa_cmd, shell=True)
-    # with open('azcopy_qa_out.txt', 'wb') as f:
-    #     f.write(qa_output)
-    # with open('azcopy_qa_out.txt', 'rb') as f:
-    #     qa_output = f.read()
-
-    # label_paths = []
-    # for server_output in output, qa_output:
-    #     for line in server_output.splitlines():
-    #         try:
-    #             label_paths.append(json.loads(json.loads(line)['MessageContent'])['Path'])
-    #         except Exception:
-    #             pass
 
     siaqua_path = '/home/jovyan/data/ReadOnly/dypersiaqua/nrcs-2-pf/'
     siadev_path = '/home/jovyan/data/ReadOnly/dypersiadev/nrcs-2-pf/'
 
+    siaqua_blobstore = 'https://dypersiaqua.blob.core.windows.net/'
+    siadev_blobstore = 'https://dypersiadev.blob.core.windows.net/'
+
     label_paths = []
-    for dir in [siadev_path, siaqua_path]:
+    for dir, blob_url in [(siadev_path, siadev_blobstore), (siaqua_path, siaqua_blobstore)]:
         output = subprocess.check_output(['find', '.', '-type', 'f'], cwd=dir).splitlines()
         for line in output:
-            line = line.strip()
+            line = line.decode().strip()
             if not line:
                 continue
             if line.startswith('./'):
                 line = line[2:]
-            print(line)
-            label_paths.append(line)
+            label_paths.append((line, blob_url))
 
     for sequence in sequences:
         if not sequence.checksum:
@@ -216,7 +194,7 @@ def set_labeled(sequences: list[Sequence]):
         # '06120852e9ace6ce4285dc8943c0ea362c7b843cc7bb0efa4251fc778a8fa014/processed_lidar/2025_01_14_17_06_55/06120852e9ace6ce4285dc8943c0ea362c7b843cc7bb0efa4251fc778a8fa014_ebd7rng_2025_01_14_17_06_55.json'
         pattern = re.compile(f'^{sequence.checksum}/processed_lidar/(?P<date>[^/]+)/{sequence.checksum}_(?P<labeler>[^_]+).+.json$')
 
-        for label_path in label_paths:
+        for label_path, sia_url in label_paths:
             match = re.match(pattern, label_path)
             if not match:
                 continue
@@ -225,7 +203,7 @@ def set_labeled(sequences: list[Sequence]):
             if not sequence.label_date_epoch or date_epoch > sequence.label_date_epoch:
                 sequence.label_date_epoch = date_epoch
                 sequence.label_labeler = match.group('labeler')
-                sequence.label_bolf_path = os.path.join(sia_blobstore, label_path)
+                sequence.label_bolf_path = os.path.join(sia_url, label_path)
             sequence.isManuallyLabeled = True
 
 
@@ -347,14 +325,13 @@ def check_fmc(sequence: Sequence):
     fmc = sequence.fmc_data
     container = '/home/jovyan/data/ReadOnly/dyperexprod/nrcs-2-pf'
     # checksum = '3dbe19d68c1bc7c4d0bdc297062f4577ad60fa2920ba4d7842aef5cdf9c58893'
-    realWorldCutoffEpch = fmcTimeToEpoch('2025-02-10T01:01:01.000Z')
+    realWorldCutoffEpch = fmcTimeToEpoch('2025-02-08T01:01:01.000Z')
 
     fmc_id = fmc['id']
     meas_name = next((mf['path'].split('/')[-1] for mf in fmc['measurementFiles'] if 'bytesoup' in mf['path']), None)
     checksum = next((mf['checksum'] for mf in fmc['measurementFiles'] if 'bytesoup' in mf['path']), None)
-    if not checksum or not meas_name.startswith('1P_DE_LBXQ6155_ZEUS'): return [], [], []
 
-    add_task, missing_processedlidar, missing_frontvideo, missing_previewvideo = [], [], [], []
+    add_task, missing_processedlidar, missing_frontvideo, missing_previewvideo, missing_rawpreviewvideo = [], [], [], [], []
 
     has_lidar = False
     if (
@@ -364,29 +341,34 @@ def check_fmc(sequence: Sequence):
         missing_processedlidar.append(fmc_id)
     else:
         has_lidar = True
-
-    if fmcTimeToEpoch(fmc['creationDate']) <= realWorldCutoffEpch:
-        if not check_video_exists(container, checksum, meas_name, 'front'):
+    
+    has_video = False
+    if fmcTimeToEpoch(fmc['recordingDate']) <= realWorldCutoffEpch:
+        if check_video_exists(container, checksum, meas_name, 'front'):
+            has_video = True
+        else:
             missing_frontvideo.append(fmc_id)
-        elif has_lidar:
-            add_task.append(sequence)
     else:
-        # real world scene
-        if not check_video_exists(container, checksum, meas_name, 'preview'):
+        if check_video_exists(container, checksum, meas_name, 'preview'):
+            has_video = True
+        else:
             raw_preview_available = any(referenceFile['type'] == 'PREVIEW_VIDEO_MERGED' for referenceFile in fmc['referenceFiles'])
             if raw_preview_available:
                 missing_previewvideo.append(fmc_id)
-        elif has_lidar:
-            if True:  # TODO enable again when preview video fixed
-                add_task.append(sequence)
+                has_video = True
+            else:
+                missing_rawpreviewvideo.append(fmc_id)
 
-    return add_task, missing_processedlidar, missing_frontvideo, missing_previewvideo
+    if has_lidar and has_video:
+        add_task.append(sequence)
+
+    return add_task, missing_processedlidar, missing_frontvideo, missing_previewvideo, missing_rawpreviewvideo
 
 
 def run():
     organization_name = 'nrcs-2-pf'
     fmc_token = request_fmc_token(organization_name)
-    fmc_query = 'Car.licensePlate = "LBXQ6155" and Sequence.recordingDate > "2025-01-01" and ReferenceFile.type = "PCAP" and ReferenceFile.type = "JSON_METADATA"'
+    fmc_query = 'Car.licensePlate = "LBXQ6155" and Sequence.recordingDate > "2025-01-01" and ReferenceFile.type = "PCAP" and ReferenceFile.type = "JSON_METADATA" and MeasurementFile.path ~ "1P_DE_LBXQ6155_ZEUS" and MeasurementFile.contentType ~ "bytesoup"'
     fmc_sequences = get_sequences(fmc_query, organization_name, fmc_token)
 
     print(f'Found {len(fmc_sequences)} sequences.')
@@ -403,18 +385,16 @@ def run():
     missing_processedlidar = []
     missing_frontvideo = []
     missing_previewvideo = []
+    missing_rawpreviewvideo = []
 
-    # TODO: need to run on jupyterhub now
     with ProcessPoolExecutor() as executor:
         results = list(tqdm(executor.map(check_fmc, sequences), total=len(fmc_sequences)))
-        for at, mpl, mfv, mpv in results:
+        for at, mpl, mfv, mpv, mrpv in results:
             add_task.extend(at)
             missing_processedlidar.extend(mpl)
             missing_frontvideo.extend(mfv)
             missing_previewvideo.extend(mpv)
-
-    # TODO: probably best to do a DB clear for measurements that arent in here on first run
-    breakpoint()
+            missing_rawpreviewvideo.extend(mrpv)
 
     with open('valid_ids.txt', 'w') as f:
         f.write(json.dumps([str(s._id) for s in add_task]))
@@ -423,7 +403,8 @@ def run():
         f.write(json.dumps({
             'missing_processedlidar': missing_processedlidar,
             'missing_frontvideo': missing_frontvideo,
-            'missing_previewvideo': missing_previewvideo
+            'missing_previewvideo': missing_previewvideo,
+            'missing_rawpreviewvideo': missing_rawpreviewvideo
         }))
 
     with open('valid_ids.txt', 'w') as f:
@@ -440,10 +421,7 @@ def run():
 
 
 def main():
-    while True:
-        print('tick')
-        run()
-        time.sleep(60 * 5)
+    run()
 
 
 if __name__ == '__main__':
