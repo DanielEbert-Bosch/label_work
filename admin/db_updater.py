@@ -173,8 +173,8 @@ def set_labeled(sequences: list[Sequence]):
     siaqua_path = '/home/jovyan/data/ReadOnly/dypersiaqua/nrcs-2-pf/'
     siadev_path = '/home/jovyan/data/ReadOnly/dypersiadev/nrcs-2-pf/'
 
-    siaqua_blobstore = 'https://dypersiaqua.blob.core.windows.net/'
-    siadev_blobstore = 'https://dypersiadev.blob.core.windows.net/'
+    siaqua_blobstore = 'https://dypersiaqua.blob.core.windows.net/nrcs-2-pf/'
+    siadev_blobstore = 'https://dypersiadev.blob.core.windows.net/nrcs-2-pf/'
 
     label_paths = []
     for dir, blob_url in [(siadev_path, siadev_blobstore), (siaqua_path, siaqua_blobstore)]:
