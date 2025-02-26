@@ -121,6 +121,12 @@ async def get_task(labeler_name: str, db: Session = Depends(get_db)):
     return {'task': db_task, 'sia_url': sia_url}
 
 
+@app.get('/api/get_open_tasks')
+async def get_task(db: Session = Depends(get_db)):
+    current_time_epoch = int(time.time())
+    return db.query(LabelTask).filter(LabelTask.is_labeled == False).filter(~LabelTask.measurement_checksum.in_(db.query(SkippedTask.measurement_checksum).scalar_subquery())).filter((current_time_epoch - 60 * 60 * 24 * 1) > LabelTask.sent_label_request_at_epoch).order_by(func.random()).all()
+
+
 @app.get('/api/test_remove_realworld')
 async def test_remove(db: Session = Depends(get_db)):
     db_tasks = db.query(LabelTask).all()
