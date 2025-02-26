@@ -105,7 +105,7 @@ class LabeledTask(BaseModel):
 async def get_task(labeler_name: str, db: Session = Depends(get_db)):
     current_time_epoch = int(time.time())
     filter_backlisted = db.query(SkippedTask).filter(SkippedTask.measurement_checksum == LabelTask.measurement_checksum).exists()
-    db_task = db.query(LabelTask).filter(LabelTask.is_labeled == False).filter(not_(filter_backlisted)).filter((current_time_epoch - 60 * 60 * 24 * 1) > LabelTask.sent_label_request_at_epoch).order_by(func.random()).first()
+    db_task = db.query(LabelTask).filter(LabelTask.is_labeled == False).filter(not_(filter_backlisted)).filter((current_time_epoch - 60 * 60 * 24 * 3) > LabelTask.sent_label_request_at_epoch).order_by(func.random()).first()
     if not db_task:
         return {'finished': True}
 
