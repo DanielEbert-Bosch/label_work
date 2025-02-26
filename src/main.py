@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
-from sqlalchemy import create_engine, Integer, String, func, Boolean
+from sqlalchemy import create_engine, Integer, String, func, Boolean, not_
 from sqlalchemy.orm import sessionmaker, mapped_column, Mapped, Session, DeclarativeBase
 import uvicorn
 import sys
@@ -104,7 +104,8 @@ class LabeledTask(BaseModel):
 @app.get('/api/get_task')
 async def get_task(labeler_name: str, db: Session = Depends(get_db)):
     current_time_epoch = int(time.time())
-    db_task = db.query(LabelTask).filter(LabelTask.is_labeled == False).filter(LabelTask.measurement_checksum.notin_(db.query(SkippedTask.measurement_checksum))).filter((current_time_epoch - 60 * 60 * 24 * 1) > LabelTask.sent_label_request_at_epoch).order_by(func.random()).first()
+    filter_backlisted = db.query(SkippedTask).filter(SkippedTask.measurement_checksum == LabelTask.measurement_checksum).exists()
+    db_task = db.query(LabelTask).filter(LabelTask.is_labeled == False).filter(not_(filter_backlisted)).filter((current_time_epoch - 60 * 60 * 24 * 1) > LabelTask.sent_label_request_at_epoch).order_by(func.random()).first()
     if not db_task:
         return {'finished': True}
 
@@ -122,9 +123,10 @@ async def get_task(labeler_name: str, db: Session = Depends(get_db)):
 
 
 @app.get('/api/get_open_tasks')
-async def get_task(db: Session = Depends(get_db)):
+async def get_open_tasks(db: Session = Depends(get_db)):
     current_time_epoch = int(time.time())
-    return db.query(LabelTask).filter(LabelTask.is_labeled == False).filter(LabelTask.measurement_checksum.notin_(db.query(SkippedTask.measurement_checksum))).filter((current_time_epoch - 60 * 60 * 24 * 1) > LabelTask.sent_label_request_at_epoch).order_by(func.random()).all()
+    filter_backlisted = db.query(SkippedTask).filter(SkippedTask.measurement_checksum == LabelTask.measurement_checksum).exists()
+    return db.query(LabelTask).filter(LabelTask.is_labeled == False).filter(not_(filter_backlisted)).filter((current_time_epoch - 60 * 60 * 24 * 1) > LabelTask.sent_label_request_at_epoch).order_by(func.random()).all()
 
 
 @app.get('/api/test_remove_realworld')
