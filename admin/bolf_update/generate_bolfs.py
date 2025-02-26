@@ -211,6 +211,7 @@ def update_bolf(
 
 
 def main():
+    # TODO: add option for new obstacle type
     parser = argparse.ArgumentParser()
     parser.add_argument('--fmc_query', required=True)
     parser.add_argument('--expected_obstacle_type', required=True)

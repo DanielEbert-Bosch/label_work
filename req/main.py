@@ -13,7 +13,7 @@ with open('req_add_tasks.json') as f:
 
 r = requests.post(f'{REST_API_URL}/api/add_tasks', headers=REST_API_HEADERS, data=tasks)
 if r.status_code == 200:
-    print('send new tasks successful')
+  print('send new tasks successful')
 
 
 with open('req_set_labeled.json') as f:

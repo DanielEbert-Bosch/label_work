@@ -1,0 +1,133 @@
+{
+    "openlabel": {
+        "metadata": {
+            "schema_version": "2.5.1",
+            "uuid": "5f054971-0262-468b-95e2-d3d3d81cbdc4",
+            "created": "2025-02-26T12:28:20.688Z",
+            "format_variant": "label-bolf",
+            "annotator": "user",
+            "label_task_id": "",
+            "label_task": "NFM",
+            "measurement_id": "db13c2baceb852fd246f45305940642f3ec17d93d43ec86739ebc1291fb4d7d2",
+            "comment": "user"
+        },
+        "frame_intervals": [
+            {
+                "frame_end": 1,
+                "frame_start": 0
+            }
+        ],
+        "frames": {
+            "7369580b-e197-4af7-9719-b7022116ab9a": {
+                "frame_properties": {
+                    "timestamp": 0,
+                    "timestamp_ecu": 1737986484271000000
+                },
+                "objects": {
+                    "828b9339-05ae-44fa-a6c5-f23b557218a4": {
+                        "object_data": {
+                            "poly3d": [
+                                {
+                                    "name": "polygon_0",
+                                    "attributes": {
+                                        "num": [
+                                            {
+                                                "name": "height",
+                                                "val": "0.4"
+                                            }
+                                        ]
+                                    },
+                                    "closed": true,
+                                    "val": [
+                                        -14.480353974286285,
+                                        0.30233874161730334,
+                                        null,
+                                        -15.019851010737279,
+                                        0.27862890811294605,
+                                        null,
+                                        -15.011777892686228,
+                                        -1.194924011931544,
+                                        null,
+                                        -14.514131030503261,
+                                        -1.1091783618591666,
+                                        null
+                                    ],
+                                    "visibility": {
+                                        "ego_rear_axle_center_distance_m": [
+                                            null,
+                                            null,
+                                            null,
+                                            null
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "0722150d-f9bc-4f8d-b1ef-d4b3f9549471": {
+                        "object_data": {
+                            "poly3d": [
+                                {
+                                    "name": "polygon_1",
+                                    "attributes": {
+                                        "num": [
+                                            {
+                                                "name": "height",
+                                                "val": "0.4"
+                                            }
+                                        ]
+                                    },
+                                    "closed": true,
+                                    "val": [
+                                        -14.480353974286285,
+                                        0.30233874161730334,
+                                        null,
+                                        -15.019851010737279,
+                                        0.27862890811294605,
+                                        null,
+                                        -15.011777892686228,
+                                        -1.194924011931544,
+                                        null,
+                                        -14.514131030503261,
+                                        -1.1091783618591666,
+                                        null
+                                    ],
+                                    "visibility": {
+                                        "ego_rear_axle_center_distance_m": [
+                                            null,
+                                            null,
+                                            null,
+                                            null
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "objects": {
+            "828b9339-05ae-44fa-a6c5-f23b557218a4": {
+                "name": "polygon_0",
+                "type": "box_high_edge_sharp",
+                "frame_intervals": [
+                    {
+                        "frame_start": "7369580b-e197-4af7-9719-b7022116ab9a",
+                        "frame_end": "7369580b-e197-4af7-9719-b7022116ab9a"
+                    }
+                ]
+            },
+            "0722150d-f9bc-4f8d-b1ef-d4b3f9549471": {
+                "name": "polygon_1",
+                "type": "box_high_edge_sharp",
+                "frame_intervals": [
+                    {
+                        "frame_start": "7369580b-e197-4af7-9719-b7022116ab9a",
+                        "frame_end": "7369580b-e197-4af7-9719-b7022116ab9a"
+                    }
+                ]
+            }
+        }
+    }
+}
