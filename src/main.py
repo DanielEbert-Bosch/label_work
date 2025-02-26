@@ -15,6 +15,7 @@ from fastapi.staticfiles import StaticFiles
 import json
 from fastapi import FastAPI, Response
 from collections import defaultdict
+from urllib.parse import urlparse, parse_qs
 
 sys.path.append(os.path.dirname(__file__))
 
@@ -23,6 +24,7 @@ load_dotenv()
 app = FastAPI()
 
 PROD = os.getenv('PROD', '0') == '1'
+SKIP_DB_CREATE = os.getenv('SKIP_DB_CREATE', '0') == '1'
 
 # Database setup
 DATABASE_FILEPATH = '/db/prod/label_work.db' if PROD else '/db/test/label_work.db'
@@ -71,6 +73,7 @@ class SkippedTask(Base):
     # raw content pasted into text field
     sia_link: Mapped[str] = mapped_column(String, index=True)
     skip_reason: Mapped[str] = mapped_column(String, index=True)
+    measurement_checksum: Mapped[str | None] = mapped_column(String, index=True, nullable=True, default=None)
 
 
 class Metric(Base):
@@ -101,8 +104,7 @@ class LabeledTask(BaseModel):
 @app.get('/api/get_task')
 async def get_task(labeler_name: str, db: Session = Depends(get_db)):
     current_time_epoch = int(time.time())
-    # TODO: for now current time epoch check infinity
-    db_task = db.query(LabelTask).filter(LabelTask.is_labeled == False).filter((current_time_epoch - 60 * 60 * 24 * 99) > LabelTask.sent_label_request_at_epoch).order_by(func.random()).first()
+    db_task = db.query(LabelTask).filter(LabelTask.is_labeled == False).filter(~LabelTask.measurement_checksum.in_(db.query(SkippedTask.measurement_checksum).scalar_subquery())).filter((current_time_epoch - 60 * 60 * 24 * 1) > LabelTask.sent_label_request_at_epoch).order_by(func.random()).first()
     if not db_task:
         return {'finished': True}
 
@@ -206,11 +208,19 @@ async def add_tasks(tasks: list[LabelTaskCreate], db: Session = Depends(get_db))
 
     return {'created_tasks': created_tasks}
 
+
+def checksum_from_sia_url(sia_link: str):
+    try:
+        return parse_qs(urlparse(sia_link).query)['measId'][0].split('/')[3]
+    except Exception as e:
+        print(f'Cannot get checksum for {sia_link}, {e}')
+        return None
+
 @app.post('/api/skip_task')
 async def set_skipped(skipped_task: SkippedTaskCreate, db: Session = Depends(get_db)):
     if not skipped_task.sia_link:
         raise HTTPException(status_code=400, detail=f'Invalid sia_link {skipped_task.sia_link}')
-    skip_task = SkippedTask(sia_link=skipped_task.sia_link, skip_reason=skipped_task.skip_reason)
+    skip_task = SkippedTask(sia_link=skipped_task.sia_link, skip_reason=skipped_task.skip_reason, measurement_checksum=checksum_from_sia_url(skipped_task.sia_link))
     db.add(skip_task)
     db.commit()
     db.refresh(skip_task)
@@ -314,7 +324,8 @@ async def get_map(labeler_name: str, level: int):
 
 app.mount('/examples', StaticFiles(directory='/static/img/examples/'), name='examples')
 
-Base.metadata.create_all(engine)
+if not SKIP_DB_CREATE:
+    Base.metadata.create_all(engine)
 
 # TODO: probably not needed
 if __name__ == '__main__':
