@@ -1,7 +1,14 @@
 from __future__ import annotations
 
-from azure.identity import AzureCliCredential
-from azure.core.credentials import TokenCredential, AccessToken
+try:
+    from azure.identity import AzureCliCredential
+    from azure.core.credentials import TokenCredential, AccessToken
+except ModuleNotFoundError:
+    os.system('pip install azure-identity')
+    from azure.identity import AzureCliCredential
+    from azure.core.credentials import TokenCredential, AccessToken
+
+
 from requests import get
 import time
 import datetime
