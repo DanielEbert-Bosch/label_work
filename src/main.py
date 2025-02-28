@@ -74,6 +74,8 @@ class SkippedTask(Base):
     sia_link: Mapped[str] = mapped_column(String, index=True)
     skip_reason: Mapped[str] = mapped_column(String, index=True)
     measurement_checksum: Mapped[str | None] = mapped_column(String, index=True, nullable=True, default=None)
+    reviewed: Mapped[bool] = mapped_column(Boolean, default=False)
+
 
 
 class Metric(Base):
