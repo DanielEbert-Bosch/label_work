@@ -16,6 +16,7 @@ import json
 from fastapi import FastAPI, Response
 from collections import defaultdict
 from urllib.parse import urlparse, parse_qs
+import re
 
 sys.path.append(os.path.dirname(__file__))
 
@@ -42,7 +43,6 @@ def get_db():
         db.close()
 
 
-# TODO: probably need measurement link
 class LabelTask(Base):
     __tablename__ = 'label_tasks'
 
@@ -58,6 +58,9 @@ class LabelTask(Base):
 
     is_labeled: Mapped[bool] = mapped_column(Boolean, default=False)
     label_bolf_path: Mapped[str | None] = mapped_column(String, nullable=True, default=None)
+    label_bolf_timestamp: Mapped[int | None] = mapped_column(Integer, nullable=True, default=None)
+    # 0 when no relabel requested
+    relabel_requested_timestamp: Mapped[int] = mapped_column(Integer, default=0)
 
     created_at_epoch: Mapped[int] = mapped_column(Integer)
 
@@ -101,6 +104,10 @@ class LabelTaskCreate(BaseModel):
 class LabeledTask(BaseModel):
     measurement_checksum: str
     label_bolf_path: str
+
+
+class RelabelTaskRequest(BaseModel):
+    fmc_sequence_id: str
 
 
 @app.get('/api/get_task')
@@ -164,11 +171,25 @@ async def test_remove(db: Session = Depends(get_db)):
     return {'del_count': del_count, 'sum': len(ids_to_delete)}
 
 
+bolf_path_url_regex = re.compile(r'^.*\/(?P<date>[^\/]+)\/[^\/]+\.json$')
+
+
+def get_bolf_timestamp(path: str) -> int | None:
+    match = bolf_path_url_regex.match(path)
+    
+    if not match:
+        print(f'Failed to get date from', path)
+        return None
+
+    return int(datetime.datetime.strptime(match.group('date'), '%Y_%m_%d_%H_%M_%S').timestamp())
+
 
 @app.post('/api/set_labeled')
 async def set_labeled(tasks: list[LabeledTask], db: Session = Depends(get_db)):
     if not tasks:
         raise HTTPException(status_code=400, detail='No tasks provided')
+    
+    print(f'set label request with {len(tasks)} tasks')
 
     created_labeled_tasks = []
 
@@ -178,6 +199,17 @@ async def set_labeled(tasks: list[LabeledTask], db: Session = Depends(get_db)):
             print(f'Unknown task {task}')
             continue
 
+        try:
+            label_bolf_timestamp = get_bolf_timestamp(task.label_bolf_path)
+        except Exception as e:
+            print(f'Failed to get bolf timestamp for {task.label_bolf_path}, {e}')
+
+        if label_bolf_timestamp < db_task.relabel_requested_timestamp:
+            # relabel requested
+            continue
+
+        db_task.label_bolf_timestamp = label_bolf_timestamp
+
         db_task.label_bolf_path = task.label_bolf_path
         db_task.is_labeled = True
         db.commit()
@@ -185,6 +217,34 @@ async def set_labeled(tasks: list[LabeledTask], db: Session = Depends(get_db)):
         created_labeled_tasks.append(task.model_dump())
 
     return created_labeled_tasks
+
+
+@app.post('/api/request_relabel')
+async def request_relabel(tasks: list[RelabelTaskRequest], db: Session = Depends(get_db)):
+    current_time_epoch = int(time.time())
+
+    if not tasks:
+        raise HTTPException(status_code=400, detail='No tasks provided')
+    
+    relabel_requested = []
+
+    for task in tasks:
+        db_task = db.query(LabelTask).filter(LabelTask.fmc_id == task.fmc_sequence_id).first()
+        if not db_task:
+            print(f'Unknown task {task}')
+            continue
+
+        db_task.relabel_requested_timestamp = current_time_epoch
+        db_task.sent_label_request_at_epoch = 0
+        db_task.last_labeler = None
+        db_task.is_labeled = False
+        db_task.label_bolf_path = None
+        db_task.label_bolf_timestamp = None
+        db.commit()
+
+        relabel_requested.append(task.model_dump())
+
+    return relabel_requested
 
 
 @app.post('/api/add_tasks')

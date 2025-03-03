@@ -23,6 +23,10 @@ for i, sia_url in enumerate(sia_urls):
         'sia_meas_id_path': sia_url
     })
 
+example_label_bolf_path = 'https://dypersiaqua.blob.core.windows.net/nrcs-2-pf/1dfc3f14818c575a6b0d36c6eeeb05903893a02fa20b379e61193be0381bc3c7/processed_lidar/2025_02_13_08_37_46/1dfc3f14818c575a6b0d36c6eeeb05903893a02fa20b379e61193be0381bc3c7_MES7BP_MES7BP_2025_02_13_08_37_46.json'
+future_example_label_bolf_path = 'https://dypersiaqua.blob.core.windows.net/nrcs-2-pf/1dfc3f14818c575a6b0d36c6eeeb05903893a02fa20b379e61193be0381bc3c7/processed_lidar/2045_02_13_08_37_46/1dfc3f14818c575a6b0d36c6eeeb05903893a02fa20b379e61193be0381bc3c7_MES7BP_MES7BP_2045_02_13_08_37_46.json'
+
+
 def log_test(func):
     def wrapper(*args, **kwargs):
         ret = func(*args, **kwargs)
@@ -69,7 +73,44 @@ def set_labeled():
     labeled_tasks = [
         {
             'measurement_checksum': tasks[3]['measurement_checksum'],
-            'label_bolf_path': tasks[3]['sia_meas_id_path']
+            'label_bolf_path': example_label_bolf_path
+        }
+    ]
+
+    r = requests.post(f'{REST_API_URL}/api/set_labeled', headers=REST_API_HEADERS, data=json.dumps(labeled_tasks))
+    assert r.status_code == 200, r.text
+    assert r.json() == labeled_tasks, r.text
+
+    r = requests.get(f'{REST_API_URL}/api/metrics', headers=REST_API_HEADERS)
+    assert r.status_code == 200, r.text
+    assert r.json() == {
+        'total_labelable': len(tasks),
+        'labeled': 1,
+        'not_labeled': len(tasks) - 1,
+        'opened': 1,
+        'opened_pending': 0
+    }, r.text
+
+
+@log_test
+def set_relabel():
+    relabel_task = [
+        {
+            'fmc_sequence_id': tasks[3]['fmc_id']
+        }
+    ]
+
+    r = requests.post(f'{REST_API_URL}/api/request_relabel', headers=REST_API_HEADERS, data=json.dumps(relabel_task))
+    assert r.status_code == 200, r.text
+    assert r.json() == relabel_task, r.text
+
+
+@log_test
+def set_future_labeled():
+    labeled_tasks = [
+        {
+            'measurement_checksum': tasks[3]['measurement_checksum'],
+            'label_bolf_path': future_example_label_bolf_path
         }
     ]
 
@@ -115,12 +156,38 @@ def skip_task():
     assert r.json()['sia_link'] == skipped_task['sia_link'], r.text
 
 
+@log_test
+def get_remaining_tasks():
+    # -2 because 1 was already labeled, 1 was requested previously in get_task()
+    for _ in range(len(tasks) - 2):
+        r = requests.get(f'{REST_API_URL}/api/get_task?labeler_name=user')
+        assert r.status_code == 200, r.text
+        assert 'finished' not in r.json(), r.text
+
+    r = requests.get(f'{REST_API_URL}/api/get_task?labeler_name=user')
+    assert r.status_code == 200, r.text
+    assert 'finished' in r.json(), r.text
+
+    r = requests.get(f'{REST_API_URL}/api/metrics', headers=REST_API_HEADERS)
+    assert r.status_code == 200, r.text
+    assert r.json() == {
+        'total_labelable': len(tasks),
+        'labeled': 1,
+        'not_labeled': len(tasks) - 1,
+        'opened': 7,
+        'opened_pending': 6
+    }, r.text
+
+
 if __name__ == '__main__':
     add_tasks()
     get_task()
     set_labeled()
+    set_relabel()
+    set_future_labeled()
     get_leaderboard()
     get_index()
     skip_task()
+    get_remaining_tasks()
 
     print('All tests successful.')

@@ -308,7 +308,7 @@ def check_fmc(sequence: Sequence):
     fmc = sequence.fmc_data
     container = '/home/jovyan/data/ReadOnly/dyperexprod/nrcs-2-pf'
     # checksum = '3dbe19d68c1bc7c4d0bdc297062f4577ad60fa2920ba4d7842aef5cdf9c58893'
-    realWorldCutoffEpch = fmcTimeToEpoch('2025-02-08T01:01:01.000Z')
+    realWorldCutoffEpch = fmcTimeToEpoch('2025-02-10T13:01:01.000Z')
 
     fmc_id = fmc['id']
     meas_name = next((mf['path'].split('/')[-1] for mf in fmc['measurementFiles'] if 'bytesoup' in mf['path']), None)
