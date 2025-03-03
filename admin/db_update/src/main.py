@@ -53,12 +53,11 @@ def main():
     print('completed')
     jc.close()
 
-    r = requests.post(f'{REST_API_URL}/api/add_tasks', headers=REST_API_HEADERS, data=params_output['NEW_TASKS_OUT_FILE'])
+    r = requests.post(f'{REST_API_URL}/api/add_tasks', headers=REST_API_HEADERS, data=params_output['NEW_TASKS_OUT_FILE']['content'])
     if r.status_code == 200:
         print('send new tasks successful')
 
-
-    r = requests.post(f'{REST_API_URL}/api/set_labeled', headers=REST_API_HEADERS, data=params_output['LABELED_OUT_FILE'])
+    r = requests.post(f'{REST_API_URL}/api/set_labeled', headers=REST_API_HEADERS, data=params_output['LABELED_OUT_FILE']['content'])
     if r.status_code == 200:
         print('send new tasks successful')
 
