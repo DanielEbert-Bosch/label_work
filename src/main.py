@@ -355,10 +355,10 @@ async def get_metrics(db: Session = Depends(get_db)):
 
 @app.get('/api/metrics_with_sequences')
 async def get_metrics(db: Session = Depends(get_db)):
-    total = set(db.query(LabelTask.fmc_id).all())
-    labeled = set(db.query(LabelTask.fmc_id).filter(LabelTask.is_labeled == True).all())
-    not_labeled = set(db.query(LabelTask.fmc_id).filter(LabelTask.is_labeled == False).all())
-    opened = set(db.query(LabelTask.fmc_id).filter(LabelTask.sent_label_request_at_epoch != 0).all())
+    total = set([row[0] for row in db.query(LabelTask.fmc_id).all()])
+    labeled = set([row[0] for row in db.query(LabelTask.fmc_id).filter(LabelTask.is_labeled == True).all()])
+    not_labeled = set([row[0] for row in db.query(LabelTask.fmc_id).filter(LabelTask.is_labeled == False).all()])
+    opened = set([row[0] for row in db.query(LabelTask.fmc_id).filter(LabelTask.sent_label_request_at_epoch != 0).all()])
 
     opened_pending = opened - labeled
 
