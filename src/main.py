@@ -370,7 +370,7 @@ async def get_metrics(db: Session = Depends(get_db)):
         'opened_pending': list(opened_pending)
     }
 
-    return json.dumps(metrics_seq)
+    return metrics_seq
 
 @app.get('/api/metrics_history')
 async def get_metrics_history(db: Session = Depends(get_db)):
