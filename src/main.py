@@ -329,12 +329,14 @@ async def get_metrics(db: Session = Depends(get_db)):
     not_labeled = db.query(LabelTask).filter(LabelTask.is_labeled == False).count()
     opened = db.query(LabelTask).filter(LabelTask.sent_label_request_at_epoch != 0).count()
 
+    opened_pending = opened - labeled
+
     metrics = {
         'total_labelable': total_count,
         'labeled': labeled,
-        'not_labeled': not_labeled,
+        'not_labeled': not_labeled - opened_pending,
         'opened': opened,
-        'opened_pending': opened - labeled
+        'opened_pending': opened_pending
     }
 
     metric = Metric(**metrics, created_at_epoch=int(time.time()))
