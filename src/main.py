@@ -286,6 +286,7 @@ def checksum_from_sia_url(sia_link: str):
         print(f'Cannot get checksum for {sia_link}, {e}')
         return None
 
+
 @app.post('/api/skip_task')
 async def set_skipped(skipped_task: SkippedTaskCreate, db: Session = Depends(get_db)):
     if not skipped_task.sia_link:
@@ -296,13 +297,20 @@ async def set_skipped(skipped_task: SkippedTaskCreate, db: Session = Depends(get
     db.refresh(skip_task)
     return skip_task
 
+
 @app.get('/api/blacklist')
 async def get_blacklist(db: Session = Depends(get_db)):
-    count = db.query(SkippedTask).count()
+    blacklisted_fmc_ids = db.query(LabelTask.fmc_id).join(
+        SkippedTask,
+        LabelTask.measurement_checksum == SkippedTask.measurement_checksum
+    ).filter(
+        SkippedTask.measurement_checksum.isnot(None)
+    ).all()
+    
+    fmc_ids = [result[0] for result in blacklisted_fmc_ids]
+    
+    return {"sequences": fmc_ids}
 
-    return {
-        'count': count
-    }
 
 @app.get('/api/backup_db')
 async def backup_db():
