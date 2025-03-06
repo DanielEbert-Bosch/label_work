@@ -303,7 +303,7 @@ async def labeled_tasks(db: Session = Depends(get_db)):
     tasks = db.query(LabelTask).filter(LabelTask.is_labeled == True).all()
     out = []
     for task in tasks:
-        out.append({'checksum': task.measurement_checksum, 'bolf_url': task.label_bolf_path})
+        out.append({'fmc_id': task.fmc_id, 'checksum': task.measurement_checksum, 'bolf_url': task.label_bolf_path})
     
     return out
 
