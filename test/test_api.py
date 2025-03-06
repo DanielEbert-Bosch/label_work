@@ -19,7 +19,7 @@ for i, sia_url in enumerate(sia_urls):
     tasks.append({
         'fmc_id': str(i),
         'fmc_data': str(i),
-        'measurement_checksum': str(i),
+        'measurement_checksum': str(i) if i != 0 else 'beea0130a88cf11be3e4e8980e4cb9f669e450e3189bf698615181765c1516e1',
         'sia_meas_id_path': sia_url
     })
 
@@ -62,7 +62,7 @@ def get_task():
     assert r.json() == {
         'total_labelable': len(tasks),
         'labeled': 0,
-        'not_labeled': len(tasks),
+        'not_labeled': len(tasks) - 1,
         'opened': 1,
         'opened_pending': 1
     }, r.text
@@ -158,8 +158,8 @@ def skip_task():
 
 @log_test
 def get_remaining_tasks():
-    # -2 because 1 was already labeled, 1 was requested previously in get_task()
-    for _ in range(len(tasks) - 2):
+    # -3 because 1 was already labeled, 1 was requested previously in get_task(), 1 was skipped
+    for _ in range(len(tasks) - 3):
         r = requests.get(f'{REST_API_URL}/api/get_task?labeler_name=user')
         assert r.status_code == 200, r.text
         assert 'finished' not in r.json(), r.text
@@ -170,13 +170,38 @@ def get_remaining_tasks():
 
     r = requests.get(f'{REST_API_URL}/api/metrics', headers=REST_API_HEADERS)
     assert r.status_code == 200, r.text
+    print(r.json())
     assert r.json() == {
         'total_labelable': len(tasks),
         'labeled': 1,
-        'not_labeled': len(tasks) - 1,
-        'opened': 7,
-        'opened_pending': 6
+        # TODO: currently includes blacklist
+        'not_labeled': 2,
+        'opened': 6,
+        'opened_pending': 5
     }, r.text
+
+
+@log_test
+def get_blacklist():
+    r = requests.get(f'{REST_API_URL}/api/blacklist')
+    assert r.status_code == 200, r.text
+    assert r.json() == {
+        'sequences': ['0']
+    }
+
+
+@log_test
+def get_metrics_with_sequences():
+    r = requests.get(f'{REST_API_URL}/api/metrics_with_sequences')
+    assert r.status_code == 200, r.text
+    assert r.json() == {
+        "total_labelable": ["6", "7", "2", "4", "5", "3", "1", "0"],
+        "labeled": ["3"],
+        "not_labeled": ["0"],
+        "opened": ["6", "7", "2", "4", "5", "1"],
+        "opened_pending": ["6", "7", "2", "5", "4", "1"]
+    }
+
 
 
 if __name__ == '__main__':
@@ -189,5 +214,7 @@ if __name__ == '__main__':
     get_index()
     skip_task()
     get_remaining_tasks()
+    get_blacklist()
+    get_metrics_with_sequences()
 
     print('All tests successful.')

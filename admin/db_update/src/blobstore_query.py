@@ -123,6 +123,52 @@ def get_sequences(fmc_query, organization_name, fmc_token):
     return sequences
 
 
+def get_sequences_in_collection(organization_name, collection_id, fmc_token):
+    """
+    Does get sequences Rest call for fmc query. Returns list of sequences.
+    """
+    fmc_headers = {
+        'Cache-Control': 'no-cache',
+        'Authorization': f'Bearer {fmc_token}',
+        'Origin': 'https://developer.bosch-data-loop.com'
+    }
+
+    sequences = []
+
+    items_per_page = 1000
+
+    is_there_more_sequences = True
+    page_index = 0
+    while is_there_more_sequences:
+        url = f'https://api.azr.bosch-data-loop.com/measurement-data-processing/v1/organizations/{organization_name}/sequencecollection/{collection_id}/sequences?itemsPerPage={items_per_page}&pageIndex={page_index}'  # noqa: E501
+        response = get(url, headers=fmc_headers)
+        if response.status_code == 200:
+            response_sequences = response.json()
+            sequences.extend(response_sequences)
+            if len(response_sequences) < items_per_page:
+                is_there_more_sequences = False
+        else:
+            logger.error(f'Get sequences call to FMC failed. status_code: {response.status_code}, reason: {response.reason}, url: {url}')
+            is_there_more_sequences = False
+        page_index += 1
+        print(f'FMC query at {page_index=}')
+
+    return sequences
+
+
+def fmc_query_has_reference_file_type(sequence, type: str) -> bool:
+    for reference_file in sequence['referenceFiles']:
+        if reference_file['type'] == type:
+            return True
+    return False
+
+
+def fmc_query_has_bytesoup(sequence) -> bool:
+    for measurement_file in sequence['measurementFiles']:
+        if 'bytesoup' in measurement_file['contentType'].lower():
+            return True
+    
+    return False
 
 
 # TODO: for testing, should be false later
@@ -314,7 +360,11 @@ def check_fmc(sequence: Sequence):
     meas_name = next((mf['path'].split('/')[-1] for mf in fmc['measurementFiles'] if 'bytesoup' in mf['path']), None)
     checksum = next((mf['checksum'] for mf in fmc['measurementFiles'] if 'bytesoup' in mf['path']), None)
 
-    add_task, missing_processedlidar, missing_frontvideo, missing_previewvideo, missing_rawpreviewvideo = [], [], [], [], []
+    add_task, missing_processedlidar, missing_frontvideo, missing_previewvideo, missing_rawpreviewvideo, missing_siametadata = [], [], [], [], [], []
+
+    has_siametadata = os.path.exists(f'{container}/{checksum}/sequence_metadata.json')
+    if not has_siametadata:
+        missing_siametadata.append(fmc_id)
 
     has_lidar = False
     if (
@@ -342,10 +392,10 @@ def check_fmc(sequence: Sequence):
             else:
                 missing_rawpreviewvideo.append(fmc_id)
 
-    if has_lidar and has_video:
+    if has_lidar and has_video and has_siametadata:
         add_task.append(sequence)
 
-    return add_task, missing_processedlidar, missing_frontvideo, missing_previewvideo, missing_rawpreviewvideo
+    return add_task, missing_processedlidar, missing_frontvideo, missing_previewvideo, missing_rawpreviewvideo, missing_siametadata
 
 
 def main():
@@ -356,12 +406,44 @@ def main():
 
     organization_name = 'nrcs-2-pf'
     fmc_token = request_fmc_token(organization_name)
-    fmc_query = 'Car.licensePlate = "LBXQ6155" and Sequence.recordingDate > "2025-01-01" and ReferenceFile.type = "PCAP" and ReferenceFile.type = "JSON_METADATA" and MeasurementFile.path ~ "1P_DE_LBXQ6155_ZEUS" and MeasurementFile.contentType ~ "bytesoup"'
+    fmc_query = 'Car.licensePlate = "LBXQ6155" and Sequence.recordingDate > "2025-01-01"'
+    # fmc_query = 'Car.licensePlate = "LBXQ6155" and Sequence.recordingDate > "2025-01-01" and ReferenceFile.type = "PCAP" and ReferenceFile.type = "JSON_METADATA" and MeasurementFile.path ~ "1P_DE_LBXQ6155_ZEUS" and MeasurementFile.contentType ~ "bytesoup"'
     fmc_sequences = get_sequences(fmc_query, organization_name, fmc_token)
 
     print(f'Found {len(fmc_sequences)} sequences.')
 
-    sequences = [Sequence(seq['id'], seq) for seq in fmc_sequences]
+    blacklisted_sequence_ids = set(get_sequences_in_collection(organization_name, 806, fmc_token))
+    print(f'Found {len(blacklisted_sequence_ids)} blacklisted sequences in collection id 806.')
+
+    complete_fmc_sequences = []
+    missing_fmc_pcap = []
+    # TODO: find a way to check if this is valid
+    missing_fmc_metadata = []
+    missing_fmc_bytesoup = []
+    fmc_blacklisted = []
+
+    for seq in fmc_sequences:
+        is_not_blacklisted = seq['id'] not in blacklisted_sequence_ids
+        has_pcap = fmc_query_has_reference_file_type(seq, 'PCAP')
+        has_fmc_metadata = fmc_query_has_reference_file_type(seq, 'JSON_METADATA')
+        has_bytesoup = fmc_query_has_bytesoup(seq)
+
+        if is_not_blacklisted and has_pcap and has_fmc_metadata and has_bytesoup:
+            complete_fmc_sequences.append(seq)
+        
+        if not is_not_blacklisted:
+            fmc_blacklisted.append(seq['id'])
+
+        if not has_pcap:
+            missing_fmc_pcap.append(seq['id'])
+        
+        if not has_fmc_metadata:
+            missing_fmc_metadata.append(seq['id'])
+        
+        if not has_bytesoup:
+            missing_fmc_bytesoup.append(seq['id'])
+
+    sequences = [Sequence(seq['id'], seq) for seq in complete_fmc_sequences]
     set_sequence_measurement_checksums(sequences)
     set_referenceFileTypes(sequences)
     set_sia_link(sequences)
@@ -374,25 +456,33 @@ def main():
     missing_frontvideo = []
     missing_previewvideo = []
     missing_rawpreviewvideo = []
+    missing_siametadata = []
 
     with ProcessPoolExecutor() as executor:
         results = list(tqdm(executor.map(check_fmc, sequences), total=len(fmc_sequences)))
-        for at, mpl, mfv, mpv, mrpv in results:
+        for at, mpl, mfv, mpv, mrpv, msm in results:
             add_task.extend(at)
             missing_processedlidar.extend(mpl)
             missing_frontvideo.extend(mfv)
             missing_previewvideo.extend(mpv)
             missing_rawpreviewvideo.extend(mrpv)
+            missing_siametadata.extend(msm)
 
     with open(valid_ids_out_file, 'w') as f:
         f.write(json.dumps([str(s._id) for s in add_task]))
     
     with open(missing_data_out_file, 'w') as f:
         f.write(json.dumps({
+            'complete_fmc_sequences': [seq['id'] for seq in complete_fmc_sequences],
+            'missing_fmc_pcap': missing_fmc_pcap,
+            'missing_fmc_bytesoup': missing_fmc_bytesoup,
+            'missing_fmc_metadata': missing_fmc_metadata,
+            'fmc_blacklisted': fmc_blacklisted,
             'missing_processedlidar': missing_processedlidar,
             'missing_frontvideo': missing_frontvideo,
             'missing_previewvideo': missing_previewvideo,
-            'missing_rawpreviewvideo': missing_rawpreviewvideo
+            'missing_rawpreviewvideo': missing_rawpreviewvideo,
+            'missing_siametadata': missing_siametadata,
         }))
 
     send_new_tasks(add_task, new_tasks_out_file)
@@ -400,9 +490,9 @@ def main():
     with open(labeled_out_file, 'w') as f:
         f.write(json.dumps(labeled_tasks))
  
-    # sequence_id_to_bolf_path = get_sequence_id_to_bolf_path(sequences, organization_name)
-    # with open('labeltaskforce_bolfs_latest.json', 'w') as f:
-    #     f.write(json.dumps(sequence_id_to_bolf_path))
+    sequence_id_to_bolf_path = get_sequence_id_to_bolf_path(sequences, organization_name)
+    with open('labeltaskforce_bolfs_latest.json', 'w') as f:
+        f.write(json.dumps(sequence_id_to_bolf_path))
     #     # TODO: automate to send to fmc
 
 

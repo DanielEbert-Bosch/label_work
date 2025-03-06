@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Data Flow Sankey Diagram</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
+    <style>
+      .node rect {
+        fill-opacity: 0.9;
+        shape-rendering: crispEdges;
+      }
+
+      .node text {
+        font-size: 12px;
+        pointer-events: none;
+        text-shadow: 0 1px 0 #fff;
+      }
+
+      .link {
+        fill: none;
+        stroke-opacity: 0.4;
+      }
+
+      .link:hover {
+        stroke-opacity: 0.7;
+      }
+
+      .link-label {
+        font-size: 18px;
+        text-anchor: middle;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="chart"></div>
+
+    <script>
+      // Set up dimensions
+      const margin = { top: 20, right: 150, bottom: 20, left: 150 },
+        width = 1900 - margin.left - margin.right,
+        height = 900 - margin.top - margin.bottom;
+
+      // Create the SVG container
+      const svg = d3
+        .select("#chart")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+      // Define the data
+      const data = {
+        nodes: [
+          // Stack 1
+          { name: "FMC", stack: 1 },
+
+          // Stack 2
+          { name: "bs + pcap + meta", stack: 2 },
+          { name: "Missing Pcap", stack: 2 },
+          { name: "Missing Bytesoup", stack: 2 },
+          { name: "Missing FMC Metadata", stack: 2 },
+          { name: "FMC Sequence Blacklisted", stack: 2 },
+
+          // Stack 3
+          { name: "pcd + sia mp4 & meta", stack: 3 },
+          { name: "Missing Lidar PCD", stack: 3 },
+          { name: "Missing Sia Metadata", stack: 3 },
+          { name: "Missing Sia Previewvideo", stack: 3 },
+          { name: "Missing Lidarvideo", stack: 3 },
+          { name: "Missing FMC Previewvideo", stack: 3 },
+
+          // Stack 4
+          { name: "Labeled", stack: 4 },
+          { name: "Not Labeled", stack: 4 },
+          { name: "Opened Pending", stack: 4 },
+          { name: "Label Blacklisted", stack: 4 },
+
+          // Stack 5
+          { name: "Bolf FMC Linked", stack: 5 },
+          { name: "Bolf FMC Unlinked", stack: 5 },
+        ],
+
+        links: [
+          // Stack 1 to Stack 2
+          { source: 0, target: 1, value: 15144 },  // 14.688 },
+          { source: 0, target: 2, value: 101},  //0.505 },
+          { source: 0, target: 3, value: 0},  // 0.0 },
+          { source: 0, target: 4, value: 257},  // 0.52 },
+          { source: 0, target: 5, value: 1826},  // 1.488 },
+
+          // Stack 2 to Stack 3
+          { source: 1, target: 6, value: 14645},  // 13.961 },
+          { source: 1, target: 7, value: 81},  // 0.306 },
+          { source: 1, target: 8, value: 34},  // 0.0 },
+          { source: 1, target: 9, value: 34},  // 0.0 },
+          { source: 1, target: 10, value: 6},  // 0.0 },
+          { source: 1, target: 11, value: 412},  // 0.415 },
+
+          // Stack 3 to Stack 4
+          { source: 6, target: 12, value: 13699},  // 12.45 },
+          { source: 6, target: 13, value: 472},  // 1.484 },
+          { source: 6, target: 14, value: 475},  // 0.111 },
+          { source: 6, target: 15, value: 278},  // 0.441 },
+
+          // Stack 4 to Stack 5
+          { source: 12, target: 16, value: 12203},  // 7.847 },
+          { source: 12, target: 17, value: 1293},  // 4.802 },
+        ],
+      };
+
+      // Set up the Sankey generator
+      const sankey = d3
+        .sankey()
+        .nodeWidth(20)
+        .nodePadding(30) // Increased from 10 to 30 for more space between bars
+        .extent([
+          [0, 0],
+          [width, height],
+        ])
+        .nodeAlign(d3.sankeyLeft);
+
+      // Apply the layout
+      const { nodes, links } = sankey(data);
+
+      // Group nodes by stack for better positioning
+      const nodesByStack = d3.group(nodes, (d) => d.stack);
+      const stackWidth = width / (nodesByStack.size + 1);
+
+      // Manually adjust x positions by stack - with more space between stacks
+      nodesByStack.forEach((stackNodes, stackIndex) => {
+        stackNodes.forEach((node) => {
+          node.x0 = (stackIndex - 1) * stackWidth * 1.2; // Multiply by 1.2 to increase horizontal spacing
+          node.x1 = node.x0 + sankey.nodeWidth();
+        });
+      });
+
+      // Recalculate the layout with fixed x positions
+      sankey.update(data);
+
+      // Create color scale
+      const color = d3
+        .scaleOrdinal()
+        .domain(data.nodes.map((d) => d.name.split(" ")[0]))
+        .range(d3.schemeCategory10);
+
+      // Draw the links
+      const link = svg
+        .append("g")
+        .selectAll(".link")
+        .data(links)
+        .join("path")
+        .attr("class", "link")
+        .attr("d", d3.sankeyLinkHorizontal())
+        .attr("stroke", (d) => color(d.source.name.split(" ")[0]))
+        .attr("stroke-width", (d) => Math.max(1, d.width))
+        .style("stroke-opacity", 0.5)
+        .sort((a, b) => b.width - a.width);
+
+      // Add link tooltips
+      link
+        .append("title")
+        .text((d) => `${d.source.name} → ${d.target.name}\n${d.value}`);
+
+      // Add text labels to the links
+      svg
+        .append("g")
+        .selectAll(".link-label")
+        .data(links)
+        .join("text")
+        .attr("class", "link-label")
+        .attr("x", (d) => (d.source.x1 + d.target.x0) / 2)
+        .attr("y", (d) => (d.y1 + d.y0) / 2)
+        .attr("dy", "0.35em")
+        .text((d) => d.value);
+
+      // Draw the nodes
+      const node = svg
+        .append("g")
+        .selectAll(".node")
+        .data(nodes)
+        .join("g")
+        .attr("class", "node")
+        .attr("transform", (d) => `translate(${d.x0},${d.y0})`);
+
+      // Add node rectangles
+      node
+        .append("rect")
+        .attr("height", (d) => d.y1 - d.y0)
+        .attr("width", (d) => d.x1 - d.x0)
+        .attr("fill", (d) => color(d.name.split(" ")[0]))
+        .attr("stroke", "#000")
+        .append("title")
+        .text((d) => `${d.name}\n${d.value.toFixed(2)}`);
+
+      // Add the node labels
+      node
+        .append("text")
+        .attr("x", (d) => (d.x0 < width / 2 ? -10 : 30))
+        .attr("y", (d) => (d.y1 - d.y0) / 2)
+        .attr("dy", "0.35em")
+        .attr("text-anchor", (d) => (d.x0 < width / 2 ? "end" : "start"))
+        .text((d) => d.name)
+        .style("font-size", "14px")
+        .filter((d) => d.x0 >= width / 2)
+        .attr("x", -10)
+        .attr("text-anchor", "end");
+
+      // Add a title
+      svg
+        .append("text")
+        .attr("x", width / 2)
+        .attr("y", -10)
+        .attr("text-anchor", "middle")
+        .style("font-size", "16px")
+        .style("font-weight", "bold")
+        .text("Data Flow with Missing Elements");
+    </script>
+  </body>
+</html>

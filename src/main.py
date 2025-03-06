@@ -298,6 +298,16 @@ async def set_skipped(skipped_task: SkippedTaskCreate, db: Session = Depends(get
     return skip_task
 
 
+@app.get('/api/labeled_tasks')
+async def labeled_tasks(db: Session = Depends(get_db)):
+    tasks = db.query(LabelTask).filter(LabelTask.is_labeled == True).all()
+    out = []
+    for task in tasks:
+        out.append({'checksum': task.measurement_checksum, 'bolf_url': task.label_bolf_path})
+    
+    return out
+
+
 @app.get('/api/blacklist')
 async def get_blacklist(db: Session = Depends(get_db)):
     blacklisted_fmc_ids = db.query(LabelTask.fmc_id).join(
