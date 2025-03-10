@@ -94,6 +94,14 @@ class Metric(Base):
     opened_pending: Mapped[int] = mapped_column(Integer)
 
 
+class Score(Base):
+    __tablename__ = 'scores'
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    labeler: Mapped[str] = mapped_column(String, unique=True, index=True)
+    score: Mapped[int] = mapped_column(Integer, default=0)
+
+
 class LabelTaskCreate(BaseModel):
     fmc_id: str
     fmc_data: str
@@ -127,6 +135,14 @@ async def get_task(labeler_name: str, db: Session = Depends(get_db)):
 
     db.commit()
     db.refresh(db_task)
+
+    db_score = db.query(Score).filter(Score.labeler == labeler_name).first()
+    if not db_score:
+        db_score = Score(labeler=labeler_name, score=1)
+        db.add(db_score)
+    else:
+        db_score.score += 1
+    db.commit()
 
     return {'task': db_task, 'sia_url': sia_url}
 
@@ -406,6 +422,24 @@ async def roland_special(db: Session = Depends(get_db)):
     
     sorted_leaderboard_items = sorted(leaderboard.items(), key=lambda item: item[1], reverse=True)
     return {labeler: count for labeler, count in sorted_leaderboard_items}
+
+@app.get('/api/danielspecial')
+async def danielspecial(db: Session = Depends(get_db)):
+    leaderboard_data = db.query(LabelTask.last_labeler, func.count()).filter(LabelTask.last_labeler != None).group_by(LabelTask.last_labeler).all()
+    leaderboard = defaultdict(int)
+    for labeler, count in leaderboard_data:
+        leaderboard[labeler.lower()] += count
+
+    static = [{'vrb2bp': 60}, {'SEF1BP': 57}, {'MES7BP': 27}, {'oos2bp': 18}, {'pma3bp': 17}, {'ret7si': 15}, {'GDE2LR': 14}, {'say2bp': 14}, {'imv2bp': 14}, {'nac4bp': 12}, {'TGS5KOR': 8}, {'kdt2abt': 8}, {'mes2lr': 6}, {'sjh1lr': 5}, {'map7fe': 4}, {'ker6bp': 4}, {'rzz2bp': 4}, {'RGC3KOR': 4}, {'dam2bp': 4}, {'loc1bp': 3}, {'rep2lr': 3}, {'OPK2BP': 3}, {'rel3bp': 2}, {'vig2bp': 2}, {'wig2lr': 2}, {'QGP1KOR': 1}, {'OIY3KOR': 1}]
+    for k, v in static:
+        leaderboard[k.lower()] += v
+
+    for labeler, count in leaderboard:
+        db_score = db.query(Score.labeler == labeler).first()
+        db_score.score += count
+
+    db.commit()
+
 
 @app.get('/')
 async def get_index_html():
