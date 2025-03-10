@@ -413,10 +413,10 @@ async def leaderboard(db: Session = Depends(get_db)):
 
 @app.get('/api/roland_special')
 async def roland_special(db: Session = Depends(get_db)):
-    leaderboard_data = db.query(LabelTask.last_labeler, func.count()).filter(LabelTask.last_labeler != None).group_by(LabelTask.last_labeler).all()
+    leaderboard_data = db.query(Score).all()
     leaderboard = defaultdict(int)
-    for labeler, count in leaderboard_data:
-        leaderboard[labeler.lower()] += count
+    for user in leaderboard_data:
+        leaderboard[user.labeler.lower()] += user.score
 
     sorted_leaderboard_items = sorted(leaderboard.items(), key=lambda item: item[1], reverse=True)
     return {labeler: count for labeler, count in sorted_leaderboard_items}
