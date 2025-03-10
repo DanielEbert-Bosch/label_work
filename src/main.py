@@ -429,8 +429,9 @@ async def danielspecial(db: Session = Depends(get_db)):
         leaderboard[labeler.lower()] += count
 
     static = [{'vrb2bp': 60}, {'SEF1BP': 57}, {'MES7BP': 27}, {'oos2bp': 18}, {'pma3bp': 17}, {'ret7si': 15}, {'GDE2LR': 14}, {'say2bp': 14}, {'imv2bp': 14}, {'nac4bp': 12}, {'TGS5KOR': 8}, {'kdt2abt': 8}, {'mes2lr': 6}, {'sjh1lr': 5}, {'map7fe': 4}, {'ker6bp': 4}, {'rzz2bp': 4}, {'RGC3KOR': 4}, {'dam2bp': 4}, {'loc1bp': 3}, {'rep2lr': 3}, {'OPK2BP': 3}, {'rel3bp': 2}, {'vig2bp': 2}, {'wig2lr': 2}, {'QGP1KOR': 1}, {'OIY3KOR': 1}]
-    for k, v in static.items():
-        leaderboard[k.lower()] += v
+    for elem in static:
+        for k, v in elem.items():
+            leaderboard[k.lower()] += v
 
     for labeler, count in leaderboard.items():
         db_score = db.query(Score.labeler == labeler).first()
