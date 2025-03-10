@@ -402,10 +402,10 @@ async def get_metrics_history(db: Session = Depends(get_db)):
 
 @app.get('/api/leaderboard')
 async def leaderboard(db: Session = Depends(get_db)):
-    leaderboard_data = db.query(LabelTask.last_labeler, func.count()).filter(LabelTask.last_labeler != None).group_by(LabelTask.last_labeler).all()
+    leaderboard_data = db.query(Score).all()
     leaderboard = defaultdict(int)
-    for labeler, count in leaderboard_data:
-        leaderboard[labeler.lower()] += count
+    for user in leaderboard_data:
+        leaderboard[user.labeler.lower()] += user.score
 
     sorted_leaderboard_items = sorted(leaderboard.items(), key=lambda item: item[1], reverse=True)
     top_20_items = sorted_leaderboard_items[:20]
@@ -420,27 +420,6 @@ async def roland_special(db: Session = Depends(get_db)):
 
     sorted_leaderboard_items = sorted(leaderboard.items(), key=lambda item: item[1], reverse=True)
     return {labeler: count for labeler, count in sorted_leaderboard_items}
-
-@app.get('/api/danielspecial')
-async def danielspecial(db: Session = Depends(get_db)):
-    leaderboard_data = db.query(LabelTask.last_labeler, func.count()).filter(LabelTask.last_labeler != None).group_by(LabelTask.last_labeler).all()
-    leaderboard = defaultdict(int)
-    for labeler, count in leaderboard_data:
-        leaderboard[labeler.lower()] += count
-
-    static = [{'vrb2bp': 60}, {'SEF1BP': 57}, {'MES7BP': 27}, {'oos2bp': 18}, {'pma3bp': 17}, {'ret7si': 15}, {'GDE2LR': 14}, {'say2bp': 14}, {'imv2bp': 14}, {'nac4bp': 12}, {'TGS5KOR': 8}, {'kdt2abt': 8}, {'mes2lr': 6}, {'sjh1lr': 5}, {'map7fe': 4}, {'ker6bp': 4}, {'rzz2bp': 4}, {'RGC3KOR': 4}, {'dam2bp': 4}, {'loc1bp': 3}, {'rep2lr': 3}, {'OPK2BP': 3}, {'rel3bp': 2}, {'vig2bp': 2}, {'wig2lr': 2}, {'QGP1KOR': 1}, {'OIY3KOR': 1}]
-    for elem in static:
-        for k, v in elem.items():
-            leaderboard[k.lower()] += v
-
-    for labeler, count in leaderboard.items():
-        db_score = db.query(Score.labeler == labeler).first()
-        if not db_score:
-            db_score = Score(labeler=labeler, score=1)
-            db.add(db_score)
-        db_score.score += count
-
-    db.commit()
 
 
 @app.get('/')
@@ -461,6 +440,5 @@ app.mount('/examples', StaticFiles(directory='/static/img/examples/'), name='exa
 if not SKIP_DB_CREATE:
     Base.metadata.create_all(engine)
 
-# TODO: probably not needed
 if __name__ == '__main__':
     uvicorn.run('main:app', host='0.0.0.0', port=7100, reload=True)
