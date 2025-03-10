@@ -25,32 +25,32 @@ def get_fmc_bolf_path(sequence) -> str | None:
 def load_data_from_files(out_dir):
     """Load and process data from JSON files."""
     data = {}
-    
+
     with open(os.path.join(out_dir, 'missing_data_out_file.json')) as f:
         missing_data = json.loads(f.read())
-    
+
     data['bs + pcap + meta'] = missing_data['complete_fmc_sequences']
     data['Missing Pcap'] = missing_data['missing_fmc_pcap']
     data['Missing Bytesoup'] = missing_data['missing_fmc_bytesoup']
     data['Missing FMC Metadata'] = missing_data['missing_fmc_metadata']
     data['Missing FMC Previewvideo'] = missing_data['missing_rawpreviewvideo']
     data['FMC Sequence Blacklisted'] = missing_data['fmc_blacklisted']
-    
+
     with open(os.path.join(out_dir, 'new_tasks_out_file.json')) as f:
         data['pcd + sia mp4 & meta'] = [int(seq['fmc_id']) for seq in json.loads(f.read())]
- 
+
     data['Missing Sia Previewvideo'] = missing_data['missing_previewvideo']
     data['Missing Lidarvideo'] = missing_data['missing_frontvideo']
     data['Missing Sia Metadata'] = missing_data['missing_siametadata']
     data['Missing Lidar PCD'] = missing_data['missing_processedlidar']
-    
+
     with open(os.path.join(out_dir, 'labeled_out_file.json')) as f:
         labeled_checksums = json.loads(f.read())
-    
+
     checksum_to_bolf_url = {}
     for label in labeled_checksums:
         checksum_to_bolf_url[label['measurement_checksum']] = label['label_bolf_path']
-    
+
     return data, missing_data, checksum_to_bolf_url
 
 def fetch_metrics_data(data):
@@ -62,12 +62,12 @@ def fetch_metrics_data(data):
     data['Labeled'] = metrics['labeled']
     data['Not Labeled'] = metrics['not_labeled']
     data['Opened Pending'] = metrics['opened_pending']
-    
+
     r = requests.get(f'{REST_API_URL}/api/blacklist', headers=REST_API_HEADERS)
     assert r.status_code == 200, r.text
     blacklist = r.json()
     data['Label Blacklisted'] = blacklist['sequences']
- 
+
     return data
 
 def analyze_fmc_linking(checksum_to_bolf_url, organization_name):
@@ -89,11 +89,11 @@ def analyze_fmc_linking(checksum_to_bolf_url, organization_name):
                 continue
             if meas_file['checksum'] not in labeled_checksums:
                 continue
-        
+
             skip = False
             if checksum_to_bolf_url[meas_file['checksum']] == get_fmc_bolf_path(seq):
                 is_linked = True
-        
+
         if skip:
             continue
 
@@ -101,7 +101,7 @@ def analyze_fmc_linking(checksum_to_bolf_url, organization_name):
             label_fmc_linked.append(seq['id'])
         else:
             label_fmc_unlinked.append(seq['id'])
- 
+
     return label_fmc_linked, label_fmc_unlinked
 
 
@@ -114,7 +114,7 @@ def things_that_shouldnt_be_done_here(data):
         data[k] = list(set(data[k]) - stage1_blacklist)
 
     ds = {k: set(v) for k, v in data.items()}
-    
+
     stage3_blacklist = ds['Not Labeled'] | ds['Opened Pending'] | ds['Label Blacklisted']
     stage4keys = ['Bolf FMC Linked', 'Bolf FMC Unlinked']
     for k in stage4keys:
@@ -126,13 +126,13 @@ def update_html_file(seq_id_data, output_filename='out.html'):
     """Update the specification file with the current data."""
     script_dir = os.path.dirname(os.path.abspath(__file__))
     template_path = os.path.join(script_dir, 'plot.html')
-    
+
     with open(template_path) as f:
-        html = f.read()    
+        html = f.read()
 
     with open('data_seq_ids.json', 'w') as f:
         f.write(json.dumps(seq_id_data))
- 
+
     data = {key: str(len(value)) for key, value in seq_id_data.items()}
 
     html = html.replace('FMC_TO_BS_PCAP_META', data['bs + pcap + meta'])
@@ -163,21 +163,21 @@ def main():
     """Main function to orchestrate the data processing workflow."""
     script_dir = os.path.dirname(os.path.abspath(__file__))
     out_dir = os.path.join(script_dir, '../db_update/out')
-    
+
     data, _, checksum_to_bolf_url = load_data_from_files(out_dir)
     data = fetch_metrics_data(data)
- 
+
     organization_name = 'nrcs-2-pf'
     label_fmc_linked, label_fmc_unlinked = analyze_fmc_linking(checksum_to_bolf_url, organization_name)
-    
+
     data['Bolf FMC Linked'] = label_fmc_linked
     data['Bolf FMC Unlinked'] = label_fmc_unlinked
 
     data= {k: [int(i) for i in v] for k, v in data.items()}
 
     things_that_shouldnt_be_done_here(data)
-    
+
     update_html_file(data)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

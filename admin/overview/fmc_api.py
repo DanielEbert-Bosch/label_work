@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 def calc_time(string):
     global start_time
 
-    if string == "start":
+    if string == 'start':
         start_time = time.time()
     else:
         end_time = time.time()
@@ -24,15 +24,15 @@ class CachedCredential(TokenCredential):
   def get_token(self, scope: str, **kwargs) -> AccessToken:
     token = self._token.get(scope)
     if not token or token.expiry < time.time():
-      calc_time("start")
+      calc_time('start')
       self._token[scope] = token = self.delegate.get_token(scope, **kwargs)
-      elapsed_time = calc_time("end")
+      elapsed_time = calc_time('end')
       self.logger.info(
-            f"Time taken to generate token(CachedCredential) is {elapsed_time:.2f} seconds."
+            f'Time taken to generate token(CachedCredential) is {elapsed_time:.2f} seconds.'
         )
     else:
         self.logger.info(
-            f"Valid token exists"
+            f'Valid token exists'
         )
     return token
 

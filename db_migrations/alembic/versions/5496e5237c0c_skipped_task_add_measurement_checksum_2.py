@@ -1,11 +1,12 @@
 """skipped task add measurement_checksum 2
 
 Revision ID: 5496e5237c0c
-Revises: 
+Revises:
 Create Date: 2025-02-26 19:18:24.819311
 
 """
-from typing import Sequence, Union
+from typing import Union
+from collections.abc import Sequence
 
 from urllib.parse import urlparse, parse_qs
 from alembic import op

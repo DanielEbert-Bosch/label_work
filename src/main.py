@@ -13,7 +13,6 @@ from fastapi.responses import FileResponse
 from urllib.parse import quote
 from fastapi.staticfiles import StaticFiles
 import json
-from fastapi import FastAPI, Response
 from collections import defaultdict
 from urllib.parse import urlparse, parse_qs
 import re
@@ -78,7 +77,6 @@ class SkippedTask(Base):
     skip_reason: Mapped[str] = mapped_column(String, index=True)
     measurement_checksum: Mapped[str | None] = mapped_column(String, index=True, nullable=True, default=None)
     reviewed: Mapped[bool] = mapped_column(Boolean, default=False)
-
 
 
 class Metric(Base):
@@ -181,7 +179,7 @@ async def test_remove(db: Session = Depends(get_db)):
         if row_to_delete:
             db.delete(row_to_delete)
             del_count += 1
-    
+
     db.commit()
 
     return {'del_count': del_count, 'sum': len(ids_to_delete)}
@@ -192,9 +190,9 @@ bolf_path_url_regex = re.compile(r'^.*\/(?P<date>[^\/]+)\/[^\/]+\.json$')
 
 def get_bolf_timestamp(path: str) -> int | None:
     match = bolf_path_url_regex.match(path)
-    
+
     if not match:
-        print(f'Failed to get date from', path)
+        print('Failed to get date from', path)
         return None
 
     return int(datetime.datetime.strptime(match.group('date'), '%Y_%m_%d_%H_%M_%S').timestamp())
@@ -204,7 +202,7 @@ def get_bolf_timestamp(path: str) -> int | None:
 async def set_labeled(tasks: list[LabeledTask], db: Session = Depends(get_db)):
     if not tasks:
         raise HTTPException(status_code=400, detail='No tasks provided')
-    
+
     print(f'set label request with {len(tasks)} tasks')
 
     created_labeled_tasks = []
@@ -241,7 +239,7 @@ async def request_relabel(tasks: list[RelabelTaskRequest], db: Session = Depends
 
     if not tasks:
         raise HTTPException(status_code=400, detail='No tasks provided')
-    
+
     relabel_requested = []
 
     for task in tasks:
@@ -320,7 +318,7 @@ async def labeled_tasks(db: Session = Depends(get_db)):
     out = []
     for task in tasks:
         out.append({'fmc_id': task.fmc_id, 'checksum': task.measurement_checksum, 'bolf_url': task.label_bolf_path})
-    
+
     return out
 
 
@@ -332,10 +330,10 @@ async def get_blacklist(db: Session = Depends(get_db)):
     ).filter(
         SkippedTask.measurement_checksum.isnot(None)
     ).all()
-    
+
     fmc_ids = [result[0] for result in blacklisted_fmc_ids]
-    
-    return {"sequences": fmc_ids}
+
+    return {'sequences': fmc_ids}
 
 
 @app.get('/api/backup_db')
@@ -381,10 +379,10 @@ async def get_metrics(db: Session = Depends(get_db)):
 
 @app.get('/api/metrics_with_sequences')
 async def get_metrics(db: Session = Depends(get_db)):
-    total = set([row[0] for row in db.query(LabelTask.fmc_id).all()])
-    labeled = set([row[0] for row in db.query(LabelTask.fmc_id).filter(LabelTask.is_labeled == True).all()])
-    not_labeled = set([row[0] for row in db.query(LabelTask.fmc_id).filter(LabelTask.is_labeled == False).all()])
-    opened = set([row[0] for row in db.query(LabelTask.fmc_id).filter(LabelTask.sent_label_request_at_epoch != 0).all()])
+    total = {row[0] for row in db.query(LabelTask.fmc_id).all()}
+    labeled = {row[0] for row in db.query(LabelTask.fmc_id).filter(LabelTask.is_labeled == True).all()}
+    not_labeled = {row[0] for row in db.query(LabelTask.fmc_id).filter(LabelTask.is_labeled == False).all()}
+    opened = {row[0] for row in db.query(LabelTask.fmc_id).filter(LabelTask.sent_label_request_at_epoch != 0).all()}
 
     opened_pending = opened - labeled
 
@@ -408,7 +406,7 @@ async def leaderboard(db: Session = Depends(get_db)):
     leaderboard = defaultdict(int)
     for labeler, count in leaderboard_data:
         leaderboard[labeler.lower()] += count
-    
+
     sorted_leaderboard_items = sorted(leaderboard.items(), key=lambda item: item[1], reverse=True)
     top_20_items = sorted_leaderboard_items[:20]
     return {labeler: count for labeler, count in top_20_items}
@@ -419,7 +417,7 @@ async def roland_special(db: Session = Depends(get_db)):
     leaderboard = defaultdict(int)
     for labeler, count in leaderboard_data:
         leaderboard[labeler.lower()] += count
-    
+
     sorted_leaderboard_items = sorted(leaderboard.items(), key=lambda item: item[1], reverse=True)
     return {labeler: count for labeler, count in sorted_leaderboard_items}
 
@@ -434,7 +432,7 @@ async def danielspecial(db: Session = Depends(get_db)):
     for k, v in static:
         leaderboard[k.lower()] += v
 
-    for labeler, count in leaderboard:
+    for labeler, count in leaderboard.items():
         db_score = db.query(Score.labeler == labeler).first()
         db_score.score += count
 

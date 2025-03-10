@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 def calc_time(string):
     global start_time
 
-    if string == "start":
+    if string == 'start':
         start_time = time.time()
     else:
         end_time = time.time()
@@ -48,15 +48,15 @@ class CachedCredential(TokenCredential):
   def get_token(self, scope: str, **kwargs) -> AccessToken:
     token = self._token.get(scope)
     if not token or token.expiry < time.time():
-      calc_time("start")
+      calc_time('start')
       self._token[scope] = token = self.delegate.get_token(scope, **kwargs)
-      elapsed_time = calc_time("end")
+      elapsed_time = calc_time('end')
       self.logger.info(
-            f"Time taken to generate token(CachedCredential) is {elapsed_time:.2f} seconds."
+            f'Time taken to generate token(CachedCredential) is {elapsed_time:.2f} seconds.'
         )
     else:
         self.logger.info(
-            f"Valid token exists"
+            f'Valid token exists'
         )
     return token
 
@@ -235,7 +235,7 @@ def get_sequence_id_to_bolf_path(sequences: list[Sequence], organization_name):
     ret = {}
     for sequence in sequences:
         if sequence.label_bolf_path:
-            ret[sequence._id] = { 
+            ret[sequence._id] = {
                 'path': sequence.label_bolf_path,
                 'type_of_label': 'KPI_GENERATED_BOLF'
             }
@@ -253,7 +253,7 @@ def get_labeled_sequences(sequences: list[Sequence]):
                 'measurement_checksum': sequence.checksum,
                 'label_bolf_path': sequence.label_bolf_path
             })
-    
+
     return ret
 
 
@@ -285,7 +285,7 @@ def send_new_tasks(sequences: list[Sequence]):
             tasks.append(dataclasses.asdict(
                 LabelTaskCreate(fmc_id=str(sequence._id), fmc_data=json.dumps(sequence.fmc_data), measurement_checksum=sequence.checksum, sia_meas_id_path=sequence.sia_meas_id_path)
             ))
-    
+
     print(f'Requesting add of {len(tasks)} tasks.')
 
     with open('req_add_tasks.json', 'w') as f:
@@ -296,7 +296,7 @@ def send_new_tasks(sequences: list[Sequence]):
     if r.status_code == 200:
         print('send new tasks successful')
         return
-    
+
     print('send new tasks failed', r.status_code)
     print(r.text)
 
@@ -305,12 +305,12 @@ def send_set_labeled(labeled_tasks: list[Sequence]):
     with open('req_set_labeled.json', 'w') as f:
         f.write(json.dumps(labeled_tasks))
     return
-    
+
     r = requests.post(f'{REST_API_URL}/api/set_labeled', headers=REST_API_HEADERS, data=json.dumps(labeled_tasks))
     if r.status_code == 200:
         print('send set labeled successful')
         return
-    
+
     print('send set labeled failed', r.status_code)
     print(r.text)
 
@@ -322,7 +322,7 @@ def fmcTimeToEpoch(ts: str) -> int:
 def check_video_exists(container, checksum, meas_name, d):
     # sometimes video has bytesoup lz4 in name
     cut_meas_name = meas_name.split('.')[0]
-    for name in list(set([cut_meas_name, meas_name])):
+    for name in list({cut_meas_name, meas_name}):
         if os.path.exists(f'{container}/{checksum}/video_output/{name}_{d}.mp4'):
             return True
     return False
@@ -348,7 +348,7 @@ def check_fmc(sequence: Sequence):
         missing_processedlidar.append(fmc_id)
     else:
         has_lidar = True
-    
+
     has_video = False
     if fmcTimeToEpoch(fmc['recordingDate']) <= realWorldCutoffEpch:
         if check_video_exists(container, checksum, meas_name, 'front'):
@@ -405,7 +405,7 @@ def run():
 
     with open('valid_ids.txt', 'w') as f:
         f.write(json.dumps([str(s._id) for s in add_task]))
-    
+
     with open('missing_data.json', 'w') as f:
         f.write(json.dumps({
             'missing_processedlidar': missing_processedlidar,
@@ -416,9 +416,9 @@ def run():
 
     with open('valid_ids.txt', 'w') as f:
         f.write(json.dumps([str(s._id) for s in add_task]))
-    
+
     send_new_tasks(add_task)
- 
+
     send_set_labeled(labeled_tasks)
 
     sequence_id_to_bolf_path = get_sequence_id_to_bolf_path(sequences, organization_name)

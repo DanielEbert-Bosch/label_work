@@ -16,15 +16,15 @@ REST_API_HEADERS = {
 def get_datetime_filename_string():
     """Returns current datetime string YYYY-MM-DD_HH-MM-SS-ms."""
     now = datetime.now()
-    return now.strftime("%Y-%m-%d_%H-%M-%S-") + f"{now.microsecond // 1000:03d}"
+    return now.strftime('%Y-%m-%d_%H-%M-%S-') + f'{now.microsecond // 1000:03d}'
 
 
 def main():
     src_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'blobstore_query.py')
     with open(src_path) as f:
         blobstore_query_src = f.read()
-    
-    params = [   
+
+    params = [
         'VALID_IDS_OUT_FILE',
         'MISSING_DATA_OUT_FILE',
         'NEW_TASKS_OUT_FILE',
@@ -43,7 +43,7 @@ def main():
     jc.exec(blobstore_query_src)
 
     out_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../out')
-    
+
     params_output = {}
     for param, filepath in param_outpaths.items():
         params_output[param] = jc.download(filepath)

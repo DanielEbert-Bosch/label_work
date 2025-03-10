@@ -5,7 +5,8 @@ Revises: 88f06b5a6565
 Create Date: 2025-03-03 22:24:46.027584
 
 """
-from typing import Sequence, Union
+from typing import Union
+from collections.abc import Sequence
 import re
 from datetime import datetime
 
@@ -24,7 +25,7 @@ bolf_path_url_regex = re.compile(r'^.*\/(?P<date>[^\/]+)\/[^\/]+\.json$')
 
 def get_bolf_timestamp(path: str) -> int | None:
     match = bolf_path_url_regex.match(path)
-    
+
     if not match:
         print(f'Failed to get date from', path)
         return None

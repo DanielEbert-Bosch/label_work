@@ -194,12 +194,16 @@ def get_blacklist():
 def get_metrics_with_sequences():
     r = requests.get(f'{REST_API_URL}/api/metrics_with_sequences')
     assert r.status_code == 200, r.text
-    assert r.json() == {
-        "total_labelable": ["6", "7", "2", "4", "5", "3", "1", "0"],
-        "labeled": ["3"],
-        "not_labeled": ["0"],
-        "opened": ["6", "7", "2", "4", "5", "1"],
-        "opened_pending": ["6", "7", "2", "5", "4", "1"]
+    ret = r.json()
+    for k, v in ret.items():
+        ret[k] = sorted(v)
+
+    assert ret == {
+        'total_labelable': sorted(['6', '7', '2', '4', '5', '3', '1', '0']),
+        'labeled': sorted(['3']),
+        'not_labeled': sorted(['0']),
+        'opened': sorted(['6', '7', '2', '4', '5', '1']),
+        'opened_pending': sorted(['6', '7', '2', '5', '4', '1'])
     }
 
 

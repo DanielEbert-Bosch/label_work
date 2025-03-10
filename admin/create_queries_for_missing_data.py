@@ -11,5 +11,5 @@ for name, ids in missing_data.items():
     for id_part in split_array(ids, 1000):
         ids_str = '","'.join([str(i) for i in id_part])
         print(f'Sequence.id in ["{ids_str}"]')
-    
+
     print()

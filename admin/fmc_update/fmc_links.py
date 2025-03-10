@@ -18,7 +18,7 @@ config = os.path.join(recompute_dataloop_utility_repo, 'upload_n_link/user_confi
 def calc_time(string):
     global start_time
 
-    if string == "start":
+    if string == 'start':
         start_time = time.time()
     else:
         end_time = time.time()
@@ -34,15 +34,15 @@ class CachedCredential(TokenCredential):
   def get_token(self, scope: str, **kwargs) -> AccessToken:
     token = self._token.get(scope)
     if not token or token.expiry < time.time():
-      calc_time("start")
+      calc_time('start')
       self._token[scope] = token = self.delegate.get_token(scope, **kwargs)
-      elapsed_time = calc_time("end")
+      elapsed_time = calc_time('end')
       self.logger.info(
-            f"Time taken to generate token(CachedCredential) is {elapsed_time:.2f} seconds."
+            f'Time taken to generate token(CachedCredential) is {elapsed_time:.2f} seconds.'
         )
     else:
         self.logger.info(
-            f"Valid token exists"
+            f'Valid token exists'
         )
     return token
 
@@ -117,7 +117,7 @@ def link_fmc_mp4_jpeg(link_json_path: str):
             if line.strip().startswith('use_case_config_file_path'):
                 updated_config.append(f'use_case_config_file_path : {link_json_path}\n')
             else:
-                updated_config.append(line) 
+                updated_config.append(line)
 
     with open(config, 'w') as f:
         f.writelines(updated_config)
@@ -172,7 +172,7 @@ def main():
 
     with open('preview_mp4_and_jpg.json', 'w') as f:
         f.write(json.dumps(out))
-    
+
     link_fmc_mp4_jpeg('preview_mp4_and_jpg.json')
 
 
