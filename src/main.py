@@ -435,6 +435,9 @@ async def danielspecial(db: Session = Depends(get_db)):
 
     for labeler, count in leaderboard.items():
         db_score = db.query(Score.labeler == labeler).first()
+        if not db_score:
+            db_score = Score(labeler=labeler, score=1)
+            db.add(db_score)
         db_score.score += count
 
     db.commit()
