@@ -60,6 +60,8 @@ def main():
     r = requests.post(f'{REST_API_URL}/api/set_labeled', headers=REST_API_HEADERS, data=params_output['LABELED_OUT_FILE']['content'])
     if r.status_code == 200:
         print('send new tasks successful')
+    
+    print('finished')
 
 
 if __name__ == '__main__':
