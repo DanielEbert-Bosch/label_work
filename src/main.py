@@ -338,8 +338,13 @@ async def set_fmc_blacklist(blacklisted_fmc_meas_checksums: list[str], db: Sessi
 
 
 @app.get('/api/get_fmc_blacklist')
-async def set_fmc_blacklist(db: Session = Depends(get_db)):
+async def get_fmc_blacklist(db: Session = Depends(get_db)):
     return db.query(FmcBlacklisted).all()
+
+
+@app.get('/api/get_labeltool_blacklist')
+async def get_labeltool_blacklist(db: Session = Depends(get_db)):
+    return db.query(SkippedTask).all()
 
 
 @app.get('/api/labeled_tasks')
