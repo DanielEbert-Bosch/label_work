@@ -79,6 +79,12 @@ class SkippedTask(Base):
     reviewed: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
+class FmcBlacklisted(Base):
+    __tablename__ = 'fmc_blacklist'
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    fmc_id: Mapped[str] = mapped_column(String, unique=True, index=True)
+
+
 class Metric(Base):
     __tablename__ = 'metrics_history'
 
@@ -120,7 +126,8 @@ class RelabelTaskRequest(BaseModel):
 async def get_task(labeler_name: str, db: Session = Depends(get_db)):
     current_time_epoch = int(time.time())
     filter_backlisted = db.query(SkippedTask).filter(SkippedTask.measurement_checksum == LabelTask.measurement_checksum).exists()
-    db_task = db.query(LabelTask).filter(LabelTask.is_labeled == False).filter(not_(filter_backlisted)).filter((current_time_epoch - 60 * 60 * 24 * 3) > LabelTask.sent_label_request_at_epoch).order_by(func.random()).first()
+    filter_fmc_backlisted = db.query(FmcBlacklisted).filter(FmcBlacklisted.fmc_id == LabelTask.fmc_id).exists()
+    db_task = db.query(LabelTask).filter(LabelTask.is_labeled == False).filter(not_(filter_backlisted)).filter(not_(filter_fmc_backlisted)).filter((current_time_epoch - 60 * 60 * 24 * 3) > LabelTask.sent_label_request_at_epoch).order_by(func.random()).first()
     if not db_task:
         return {'finished': True}
 
@@ -149,7 +156,8 @@ async def get_task(labeler_name: str, db: Session = Depends(get_db)):
 async def get_open_tasks(db: Session = Depends(get_db)):
     current_time_epoch = int(time.time())
     filter_backlisted = db.query(SkippedTask).filter(SkippedTask.measurement_checksum == LabelTask.measurement_checksum).exists()
-    return db.query(LabelTask).filter(LabelTask.is_labeled == False).filter(not_(filter_backlisted)).filter((current_time_epoch - 60 * 60 * 24 * 1) > LabelTask.sent_label_request_at_epoch).order_by(func.random()).all()
+    filter_fmc_backlisted = db.query(FmcBlacklisted).filter(FmcBlacklisted.fmc_id == LabelTask.fmc_id).exists()
+    return db.query(LabelTask).filter(LabelTask.is_labeled == False).filter(not_(filter_backlisted)).filter(not_(filter_fmc_backlisted)).filter((current_time_epoch - 60 * 60 * 24 * 1) > LabelTask.sent_label_request_at_epoch).order_by(func.random()).all()
 
 
 @app.get('/api/test_remove_realworld')
@@ -310,6 +318,19 @@ async def set_skipped(skipped_task: SkippedTaskCreate, db: Session = Depends(get
     db.commit()
     db.refresh(skip_task)
     return skip_task
+
+
+@app.post('/api/set_fmc_blacklist')
+async def set_fmc_blacklist(blacklisted_seq_ids: list[str], db: Session = Depends(get_db)):
+    db.query(FmcBlacklisted).delete()
+
+    new_blacklist = []
+    for seq_id in blacklisted_seq_ids:
+        new_blacklist.append(FmcBlacklisted(fmc_id=seq_id))
+
+    db.add_all(new_blacklist)
+    db.commit()
+    return
 
 
 @app.get('/api/labeled_tasks')
