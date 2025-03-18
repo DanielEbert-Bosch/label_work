@@ -20,10 +20,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-# TODO DO_TESTING = os.getenv('DO_TESTING', '0') != '0'
-DO_TESTING = True
+DO_TESTING = os.getenv('DO_TESTING', '0') != '0'
 
-# TODO: update url
 if DO_TESTING:
     REST_API_URL = 'http://localhost:7100'
 else:
