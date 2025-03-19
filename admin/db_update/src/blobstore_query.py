@@ -353,8 +353,7 @@ def check_video_exists(container, checksum, meas_name, d):
 def check_fmc(sequence: Sequence):
     fmc = sequence.fmc_data
     container = '/home/jovyan/data/ReadOnly/dyperexprod/nrcs-2-pf'
-    # checksum = '3dbe19d68c1bc7c4d0bdc297062f4577ad60fa2920ba4d7842aef5cdf9c58893'
-    realWorldCutoffEpch = fmcTimeToEpoch('2025-02-10T13:01:01.000Z')
+    realWorldCutoffEpoch = fmcTimeToEpoch('2025-02-10T13:01:01.000Z')
 
     fmc_id = fmc['id']
     meas_name = next((mf['path'].split('/')[-1] for mf in fmc['measurementFiles'] if 'bytesoup' in mf['path']), None)
@@ -376,21 +375,19 @@ def check_fmc(sequence: Sequence):
         has_lidar = True
 
     has_video = False
-    if fmcTimeToEpoch(fmc['recordingDate']) <= realWorldCutoffEpch:
-        if check_video_exists(container, checksum, meas_name, 'front'):
-            has_video = True
+    if check_video_exists(container, checksum, meas_name, 'front'):
+        has_video = True
+    elif fmcTimeToEpoch(fmc['recordingDate']) <= realWorldCutoffEpoch:
+        missing_frontvideo.append(fmc_id)
+
+    if check_video_exists(container, checksum, meas_name, 'preview'):
+        has_video = True
+    elif fmcTimeToEpoch(fmc['recordingDate']) > realWorldCutoffEpoch:
+        raw_preview_available = any(referenceFile['type'] == 'PREVIEW_VIDEO_MERGED' for referenceFile in fmc['referenceFiles'])
+        if raw_preview_available:
+            missing_previewvideo.append(fmc_id)
         else:
-            missing_frontvideo.append(fmc_id)
-    else:
-        if check_video_exists(container, checksum, meas_name, 'preview'):
-            has_video = True
-        else:
-            raw_preview_available = any(referenceFile['type'] == 'PREVIEW_VIDEO_MERGED' for referenceFile in fmc['referenceFiles'])
-            if raw_preview_available:
-                missing_previewvideo.append(fmc_id)
-                has_video = True
-            else:
-                missing_rawpreviewvideo.append(fmc_id)
+            missing_rawpreviewvideo.append(fmc_id)
 
     if has_lidar and has_video and has_siametadata:
         add_task.append(sequence)
