@@ -93,6 +93,16 @@
       </div>
 
       <div class="board">
+        <div class="board-title">Labeler of the month</div>
+        <table id="leaderboard-table-month"></table>
+      </div>
+
+      <div class="board">
+        <div class="board-title">Labeler of the week</div>
+        <table id="leaderboard-table-week"></table>
+      </div>
+
+      <div class="board">
         <div class="board-title">Metrics</div>
         <table id="metrics-table"></table>
         <div style="padding: 3px;">'labeled' metric is updated daily.</div>
@@ -157,6 +167,30 @@
           .then((data) => {
             console.log("Fetched data:", data);
             setTable("leaderboard-table", data, ["Name", "Score"]);
+          });
+
+        fetch(new URL(`http://${backend}:7100/api/leaderboard_month`))
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then((data) => {
+            console.log("Fetched data:", data);
+            setTable("leaderboard-table-month", data, ["Name", "Score"]);
+          });
+
+        fetch(new URL(`http://${backend}:7100/api/leaderboard_week`))
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then((data) => {
+            console.log("Fetched data:", data);
+            setTable("leaderboard-table-week", data, ["Name", "Score"]);
           });
 
         fetch(new URL(`http://${backend}:7100/api/metrics`))

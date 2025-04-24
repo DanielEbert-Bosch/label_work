@@ -15,6 +15,7 @@ from fastapi.staticfiles import StaticFiles
 import json
 from collections import defaultdict
 from urllib.parse import urlparse, parse_qs
+from datetime import datetime, timedelta
 import re
 
 sys.path.append(os.path.dirname(__file__))
@@ -445,6 +446,36 @@ async def leaderboard(db: Session = Depends(get_db)):
     sorted_leaderboard_items = sorted(leaderboard.items(), key=lambda item: item[1], reverse=True)
     top_20_items = sorted_leaderboard_items[:20]
     return {labeler: count for labeler, count in top_20_items}
+
+def start_of_this_week():
+    now = datetime.now()
+    return (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+
+def start_of_this_month():
+    now = datetime.now()
+    return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+def compute_leaderboard_since(db: Session, since: datetime):
+    tasks = db.query(LabelTask).filter(LabelTask.sent_label_request_at_epoch > 0).all()
+    leaderboard = defaultdict(int)
+
+    for task in tasks:
+        if task.last_labeler:
+            dt = datetime.fromtimestamp(task.sent_label_request_at_epoch)
+            if dt >= since:
+                leaderboard[task.last_labeler.lower()] += 1
+
+    sorted_leaderboard_items = sorted(leaderboard.items(), key=lambda item: item[1], reverse=True)
+    top_20_items = sorted_leaderboard_items[:20]
+    return {labeler: count for labeler, count in top_20_items}
+
+@app.get('/api/leaderboard_week')
+async def leaderboard_week(db: Session = Depends(get_db)):
+    return compute_leaderboard_since(db, start_of_this_week())
+
+@app.get('/api/leaderboard_month')
+async def leaderboard_month(db: Session = Depends(get_db)):
+    return compute_leaderboard_since(db, start_of_this_month())
 
 @app.get('/api/roland_special')
 async def roland_special(db: Session = Depends(get_db)):
