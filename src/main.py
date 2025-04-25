@@ -52,6 +52,8 @@ class LabelTask(Base):
     fmc_data: Mapped[str] = mapped_column(String)
     sia_meas_id_path: Mapped[str] = mapped_column(String)
 
+    campaign: Mapped[str | None] = mapped_column(String, nullable=True, default=None, index=True)
+
     # 0 means not sent out yet
     sent_label_request_at_epoch: Mapped[int] = mapped_column(Integer, default=0)
     last_labeler: Mapped[str | None] = mapped_column(String, nullable=True, default=None)
@@ -124,11 +126,15 @@ class RelabelTaskRequest(BaseModel):
 
 
 @app.get('/api/get_task')
-async def get_task(labeler_name: str, db: Session = Depends(get_db)):
+async def get_task(labeler_name: str, campaign: str, db: Session = Depends(get_db)):
     current_time_epoch = int(time.time())
     filter_backlisted = db.query(SkippedTask).filter(SkippedTask.measurement_checksum == LabelTask.measurement_checksum).exists()
     filter_fmc_backlisted = db.query(FmcBlacklisted).filter(FmcBlacklisted.measurement_checksum == LabelTask.measurement_checksum).exists()
-    db_task = db.query(LabelTask).filter(LabelTask.is_labeled == False).filter(not_(filter_backlisted)).filter(not_(filter_fmc_backlisted)).filter((current_time_epoch - 60 * 60 * 24 * 3) > LabelTask.sent_label_request_at_epoch).order_by(func.random()).first()
+    if campaign.lower() == 'any':
+        db_task = db.query(LabelTask).filter(LabelTask.is_labeled == False).filter(not_(filter_backlisted)).filter(not_(filter_fmc_backlisted)).filter((current_time_epoch - 60 * 60 * 24 * 3) > LabelTask.sent_label_request_at_epoch).order_by(func.random()).first()
+    else:
+        db_task = db.query(LabelTask).filter(LabelTask.is_labeled == False).filter(not_(filter_backlisted)).filter(not_(filter_fmc_backlisted)).filter((current_time_epoch - 60 * 60 * 24 * 3) > LabelTask.sent_label_request_at_epoch).filter(LabelTask.campaign == campaign).order_by(func.random()).first()
+
     if not db_task:
         return {'finished': True}
 
@@ -151,6 +157,11 @@ async def get_task(labeler_name: str, db: Session = Depends(get_db)):
     db.commit()
 
     return {'task': db_task, 'sia_url': sia_url}
+
+
+@app.get('/api/get_label_campaigns')
+def get_label_campaigns(db: Session = Depends(get_db)):
+    return [row[0] for row in db.query(LabelTask.campaign).filter(LabelTask.campaign != None).distinct()]
 
 
 @app.get('/api/get_open_tasks')
@@ -288,13 +299,21 @@ async def add_tasks(tasks: list[LabelTaskCreate], db: Session = Depends(get_db))
             print(f'Skipping Task {task}, already in db.')
             continue
 
+        campaign = None
+        try:
+            campaign = json.loads(task.fmc_data)['car']['licensePlate']
+        except Exception as e:
+            print(f'Failed to set campaign for {task}, {e}')
+
         db_task = LabelTask(
             fmc_id=task.fmc_id,
             fmc_data=task.fmc_data,
             measurement_checksum=task.measurement_checksum,
             sia_meas_id_path=task.sia_meas_id_path,
+            campaign=campaign,
             created_at_epoch=current_time
         )
+
         db.add(db_task)
         db.commit()
         created_tasks.append(task.model_dump())
@@ -370,6 +389,18 @@ async def get_blacklist(db: Session = Depends(get_db)):
     fmc_ids = [result[0] for result in blacklisted_fmc_ids]
 
     return {'sequences': fmc_ids}
+
+
+@app.get('/api/daniel_set_campaign_for_existing_measurements')
+async def daniel_set_campaign_for_existing_measurements(db: Session = Depends(get_db)):
+    for task in db.query(LabelTask):
+        if task.campaign != None:
+            continue
+        try:
+            task.campaign = json.loads(task.fmc_data)['car']['licensePlate']
+        except Exception as e:
+            print(f'Failed to set campaign for {task.id}, {e}')
+    db.commit()
 
 
 @app.get('/api/backup_db')

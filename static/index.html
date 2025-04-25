@@ -39,11 +39,20 @@
       input[type="text"] {
         width: 100%;
         padding: 10px;
-        margin-bottom: 40px;
         border: 1px solid #ccc;
         border-radius: 4px;
         box-sizing: border-box; /* To include padding and border in element's total width and height */
         font-size: 16px;
+      }
+
+      select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box; /* To include padding and border in element's total width and height */
+        font-size: 16px;
+        background-color: white;
       }
 
       .nextmeasurement-button {
@@ -222,16 +231,25 @@
         Here: https://service-management.bosch.tech/sp?id=sc_cat_item&sys_id=ae0fa1bb1b87551078087403dd4bcbf2
       </div>
 
-      <label for="user">User ID (example: abc1kor)</label>
-      <input type="text" id="user" name="user" placeholder="Enter User ID" />
+    <div style="padding-top: 20px; text-align: left;">
+        <label for="labelCampaignSelect" style="display: inline-block; margin-right: 5px;">Campaign:</label>
+        <select id="labelCampaignSelect" name="labelCampaignSelect" style="display: inline-block; width: 200px; font-size: 1.1em;">
+            <option value="Any">Any</option>
+        </select>
+    </div>
+
+    <div style="padding-top: 20px; padding-bottom: 40px; text-align: left;">
+        <label for="user" style="display: inline-block;">User ID (example: abc1kor): </label>
+        <input type="text" id="user" name="user" placeholder="Enter User ID" style="max-width: 500px;"/>
+    </div>
 
       <button class="nextmeasurement-button" onclick="openMeasurement()">
         Open Measurement
       </button>
 
-    <div style="padding-top: 20px;">
+    <div style="padding-top: 20px; text-align: left;">
         <label for="openAtStartOrEnd" style="display: inline-block;">Opened Measurement begins at:</label>
-        <select id="openAtStartOrEnd" name="openAtStartOrEnd" style="display: inline-block;">
+        <select id="openAtStartOrEnd" name="openAtStartOrEnd" style="display: inline-block; width: 200px;">
             <option value="start">Start</option>
             <option value="end">End</option>
         </select>
@@ -460,9 +478,13 @@
         }
         localStorage.setItem("labelingUser", user);
 
+        const campaign = document.getElementById("labelCampaignSelect").value;
+        localStorage.setItem("campaign", campaign);
+
         // TODO: replace with server
         const url = new URL(`http://${backend}:7100/api/get_task`);
         url.searchParams.append("labeler_name", user);
+        url.searchParams.append("campaign", campaign);
 
         fetch(url)
           .then((response) => {
@@ -594,6 +616,36 @@
       }
 
       document.addEventListener("DOMContentLoaded", function () {
+        fetch(`http://${backend}:7100/api/get_label_campaigns`)
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then((campaigns) => {
+            console.log("Fetched data:", campaigns);
+            campaigns.sort()
+            campaigns = ['Any', ...campaigns]
+            const labelCampaignSelect = document.getElementById("labelCampaignSelect")
+            labelCampaignSelect.innerHTML = '';
+            campaigns.forEach((campaign) => {
+                labelCampaignSelect.appendChild(new Option(campaign, campaign));
+            });
+
+            const prevCampaign = localStorage.getItem("campaign");
+            console.log('loaded campaign ' + prevCampaign)
+            if (prevCampaign && campaigns.includes(prevCampaign)) {
+                document.getElementById("labelCampaignSelect").value = prevCampaign;
+            } else {
+                document.getElementById("labelCampaignSelect").value = 'Any';
+            }
+          })
+          .catch((error) => {
+            console.error("Fetch error:", error);
+            alert("Failed to fetch data. See console for details.");
+          });
+
         const productionURL = 'fe-c-017ev.lr.de.bosch.com';
         if (window.location.hostname === productionURL) {
             const images = document.querySelectorAll('img');
@@ -620,7 +672,7 @@
           : 0;
         setXPBar(currentXP);
 
-        const prevUser = localStorage.getItem("labelingUser", user);
+        const prevUser = localStorage.getItem("labelingUser");
         if (prevUser) {
           document.getElementById("user").value = prevUser;
         }
