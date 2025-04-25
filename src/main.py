@@ -15,7 +15,7 @@ from fastapi.staticfiles import StaticFiles
 import json
 from collections import defaultdict
 from urllib.parse import urlparse, parse_qs
-from datetime import datetime, timedelta
+from datetime import timedelta
 import re
 
 sys.path.append(os.path.dirname(__file__))
@@ -448,20 +448,20 @@ async def leaderboard(db: Session = Depends(get_db)):
     return {labeler: count for labeler, count in top_20_items}
 
 def start_of_this_week():
-    now = datetime.now()
+    now = datetime.datetime.now()
     return (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
 
 def start_of_this_month():
-    now = datetime.now()
+    now = datetime.datetime.now()
     return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-def compute_leaderboard_since(db: Session, since: datetime):
+def compute_leaderboard_since(db: Session, since):
     tasks = db.query(LabelTask).filter(LabelTask.sent_label_request_at_epoch > 0).all()
     leaderboard = defaultdict(int)
 
     for task in tasks:
         if task.last_labeler:
-            dt = datetime.fromtimestamp(task.sent_label_request_at_epoch)
+            dt = datetime.datetime.fromtimestamp(task.sent_label_request_at_epoch)
             if dt >= since:
                 leaderboard[task.last_labeler.lower()] += 1
 
