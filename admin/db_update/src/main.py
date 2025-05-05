@@ -4,6 +4,7 @@ from datetime import datetime
 import os
 import requests
 
+from set_fmc_blacklist import set_fmc_blacklist
 from jupyterclient import JupyterClient
 
 
@@ -21,7 +22,13 @@ def get_datetime_filename_string():
     return now.strftime('%Y-%m-%d_%H-%M-%S-') + f'{now.microsecond // 1000:03d}'
 
 
+def chunk_array(arr, x):
+    return [arr[i:i + x] for i in range(0, len(arr), x)]
+
+
 def main():
+    set_fmc_blacklist()
+
     src_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'blobstore_query.py')
     with open(src_path) as f:
         blobstore_query_src = f.read()

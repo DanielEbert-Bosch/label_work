@@ -9,6 +9,7 @@ except ModuleNotFoundError:
     from azure.core.credentials import TokenCredential, AccessToken
 
 
+import requests
 from requests import get
 import time
 import datetime
@@ -403,7 +404,9 @@ def main():
 
     organization_name = 'nrcs-2-pf'
     fmc_token = request_fmc_token(organization_name)
-    fmc_query = 'Car.licensePlate = "LBXQ6155" and Sequence.recordingDate > "2025-01-01"'
+    # *** SELECT MEASUREMENT TO ADD (FMC QUERY) HERE ***
+    fmc_query = 'Car.licensePlate = "AML3612" and Sequence.recordingDate > "2025-04-15" and ReferenceFile.type = "PCAP" and ReferenceFile.type = "JSON_METADATA" and ReferenceFile.type = "PREVIEW_VIDEO_MERGED"'
+    # fmc_query = 'Car.licensePlate = "LBXQ6155" and Sequence.recordingDate > "2025-01-01"'
     # fmc_query = 'Car.licensePlate = "LBXQ6155" and Sequence.recordingDate > "2025-01-01" and ReferenceFile.type = "PCAP" and ReferenceFile.type = "JSON_METADATA" and MeasurementFile.path ~ "1P_DE_LBXQ6155_ZEUS" and MeasurementFile.contentType ~ "bytesoup"'
     fmc_sequences = get_sequences(fmc_query, organization_name, fmc_token)
 

@@ -165,7 +165,7 @@ def chunk_array(arr, x):
     return [arr[i:i + x] for i in range(0, len(arr), x)]
 
 
-def main():
+def set_fmc_blacklist():
     organization_name = 'nrcs-2-pf'
     fmc_token = request_fmc_token(organization_name)
     blacklisted_sequence_ids = get_sequences_in_collection(organization_name, 806, fmc_token)
@@ -195,4 +195,4 @@ def main():
 
 
 if __name__ == '__main__':
-    raise SystemExit(main())
+    raise SystemExit(set_fmc_blacklist())
