@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
-from sqlalchemy import create_engine, Integer, String, func, Boolean, not_, and_
+from sqlalchemy import create_engine, Integer, String, func, Boolean, not_, and_, or_
 from sqlalchemy.orm import sessionmaker, mapped_column, Mapped, Session, DeclarativeBase
 import uvicorn
 import sys
@@ -428,10 +428,14 @@ async def backup_db():
 
 @app.get('/api/metrics')
 async def get_metrics(db: Session = Depends(get_db)):
-    total_count = db.query(LabelTask).count()
-    labeled = db.query(LabelTask).filter(LabelTask.is_labeled == True).count()
-    not_labeled = db.query(LabelTask).filter(LabelTask.is_labeled == False).count()
-    opened = db.query(LabelTask).filter(LabelTask.sent_label_request_at_epoch != 0).count()
+    current_time_epoch = int(time.time())
+    filter_backlisted = (db.query(SkippedTask).filter(and_(SkippedTask.measurement_checksum == LabelTask.measurement_checksum, not_(SkippedTask.skip_reason.in_(ALLOWED_REASON)))).exists())
+    filter_fmc_backlisted = db.query(FmcBlacklisted).filter(FmcBlacklisted.measurement_checksum == LabelTask.measurement_checksum).exists()
+    total_count = db.query(LabelTask).filter(not_(filter_backlisted)).filter(not_(filter_fmc_backlisted)).count()
+    labeled = db.query(LabelTask).filter(LabelTask.is_labeled == True).filter(not_(filter_backlisted)).filter(not_(filter_fmc_backlisted)).count()
+    not_labeled = db.query(LabelTask).filter(LabelTask.is_labeled == False).filter(not_(filter_backlisted)).filter(not_(filter_fmc_backlisted)).count()
+    opened = db.query(LabelTask).filter(LabelTask.sent_label_request_at_epoch != 0).filter(not_(filter_backlisted)).filter(not_(filter_fmc_backlisted)).count()
+    blacklisted = db.query(LabelTask).filter(or_(filter_backlisted,filter_fmc_backlisted)).count()
 
     opened_pending = opened - labeled
 
@@ -440,7 +444,8 @@ async def get_metrics(db: Session = Depends(get_db)):
         'labeled': labeled,
         'not_labeled': not_labeled - opened_pending,
         'opened': opened,
-        'opened_pending': opened_pending
+        'opened_pending': opened_pending,
+        'blacklisted': blacklisted
     }
 
     metric = Metric(**metrics, created_at_epoch=int(time.time()))
