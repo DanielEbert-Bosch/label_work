@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
-from sqlalchemy import create_engine, Integer, String, func, Boolean, not_
+from sqlalchemy import create_engine, Integer, String, func, Boolean, not_, and_
 from sqlalchemy.orm import sessionmaker, mapped_column, Mapped, Session, DeclarativeBase
 import uvicorn
 import sys
@@ -124,11 +124,16 @@ class LabeledTask(BaseModel):
 class RelabelTaskRequest(BaseModel):
     fmc_sequence_id: str
 
+ALLOWED_REASON = [
+    "obstacle_height_too_high",
+    "obstacle_height_too_low",
+    "wrong_metadata"
+]
 
 @app.get('/api/get_task')
 async def get_task(labeler_name: str, campaign: str, db: Session = Depends(get_db)):
     current_time_epoch = int(time.time())
-    filter_backlisted = db.query(SkippedTask).filter(SkippedTask.measurement_checksum == LabelTask.measurement_checksum).exists()
+    filter_backlisted = (db.query(SkippedTask).filter(and_(SkippedTask.measurement_checksum == LabelTask.measurement_checksum, not_(SkippedTask.skip_reason.in_(ALLOWED_REASON)))).exists())
     filter_fmc_backlisted = db.query(FmcBlacklisted).filter(FmcBlacklisted.measurement_checksum == LabelTask.measurement_checksum).exists()
     if campaign.lower() == 'any':
         db_task = db.query(LabelTask).filter(LabelTask.is_labeled == False).filter(not_(filter_backlisted)).filter(not_(filter_fmc_backlisted)).filter((current_time_epoch - 60 * 60 * 24 * 3) > LabelTask.sent_label_request_at_epoch).order_by(func.random()).first()
