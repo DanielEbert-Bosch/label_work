@@ -437,7 +437,7 @@ async def get_metrics(db: Session = Depends(get_db)):
     # Not implemented in Metric yet. if we want to support it, need to change database Metric table to add blacklisted column
     # blacklisted = db.query(LabelTask).filter(or_(filter_backlisted,filter_fmc_backlisted)).count()
 
-    opened_pending = db.query(LabelTask).filter(LabeledTask.is_labeled == False).filter(LabelTask.sent_label_request_at_epoch != 0).filter(not_(filter_backlisted)).filter(not_(filter_fmc_backlisted)).count()
+    opened_pending = db.query(LabelTask).filter(LabelTask.is_labeled == False).filter(LabelTask.sent_label_request_at_epoch != 0).filter(not_(filter_backlisted)).filter(not_(filter_fmc_backlisted)).count()
 
     metrics = {
         'total_labelable': total_count,
