@@ -428,7 +428,6 @@ async def backup_db():
 
 @app.get('/api/metrics')
 async def get_metrics(db: Session = Depends(get_db)):
-    current_time_epoch = int(time.time())
     filter_backlisted = (db.query(SkippedTask).filter(and_(SkippedTask.measurement_checksum == LabelTask.measurement_checksum, not_(SkippedTask.skip_reason.in_(ALLOWED_REASON)))).exists())
     filter_fmc_backlisted = db.query(FmcBlacklisted).filter(FmcBlacklisted.measurement_checksum == LabelTask.measurement_checksum).exists()
     total_count = db.query(LabelTask).filter(not_(filter_backlisted)).filter(not_(filter_fmc_backlisted)).count()
