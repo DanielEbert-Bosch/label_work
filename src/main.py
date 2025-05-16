@@ -428,11 +428,12 @@ async def backup_db():
 
 @app.get('/api/metrics')
 async def get_metrics(db: Session = Depends(get_db)):
+    current_time_epoch = int(time.time())
     filter_backlisted = (db.query(SkippedTask).filter(and_(SkippedTask.measurement_checksum == LabelTask.measurement_checksum, not_(SkippedTask.skip_reason.in_(ALLOWED_REASON)))).exists())
     filter_fmc_backlisted = db.query(FmcBlacklisted).filter(FmcBlacklisted.measurement_checksum == LabelTask.measurement_checksum).exists()
     total_count = db.query(LabelTask).filter(not_(filter_backlisted)).filter(not_(filter_fmc_backlisted)).count()
     labeled = db.query(LabelTask).filter(LabelTask.is_labeled == True).filter(not_(filter_backlisted)).filter(not_(filter_fmc_backlisted)).count()
-    not_labeled = db.query(LabelTask).filter(LabelTask.is_labeled == False).filter(not_(filter_backlisted)).filter(not_(filter_fmc_backlisted)).count()
+    not_labeled = db.query(LabelTask).filter((current_time_epoch - 60 * 60 * 24 * 3) > LabelTask.sent_label_request_at_epoch).filter(not_(filter_backlisted)).filter(not_(filter_fmc_backlisted)).count()
     opened = db.query(LabelTask).filter(LabelTask.sent_label_request_at_epoch != 0).filter(not_(filter_backlisted)).filter(not_(filter_fmc_backlisted)).count()
     # Not implemented in Metric yet. if we want to support it, need to change database Metric table to add blacklisted column
     # blacklisted = db.query(LabelTask).filter(or_(filter_backlisted,filter_fmc_backlisted)).count()
@@ -442,7 +443,7 @@ async def get_metrics(db: Session = Depends(get_db)):
     metrics = {
         'total_labelable': total_count,
         'labeled': labeled,
-        'not_labeled': not_labeled - opened_pending,
+        'not_labeled': not_labeled,
         'opened': opened,
         'opened_pending': opened_pending,
         # 'blacklisted': blacklisted
