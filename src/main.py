@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy import create_engine, Integer, String, func, Boolean, not_, and_, or_
 from sqlalchemy.orm import sessionmaker, mapped_column, Mapped, Session, DeclarativeBase
+from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import sys
 import os
@@ -23,6 +24,14 @@ sys.path.append(os.path.dirname(__file__))
 load_dotenv()
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
 
 PROD = os.getenv('PROD', '0') == '1'
 SKIP_DB_CREATE = os.getenv('SKIP_DB_CREATE', '0') == '1'
